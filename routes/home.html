@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기록생활</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* 기본 폰트 및 커스텀 스타일 적용 */
+        body, main {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+        body { background-color: #f8f9fa; }
+        
+        /* 라이트모드 포인트 컬러 (베이지) */
+        .point-bg { background-color: #E2D6C4; }
+        .point-text { color: #8A745B; }
+        .point-border { border-color: #E2D6C4; }
+        .point-bg-hover:hover { background-color: #D1C3B2; }
+
+        /* 활성화된 메뉴 스타일 */
+        .sidebar-item.active {
+            background-color: #E2D6C4;
+            color: #6F5D49;
+        }
+        .sidebar-item.active svg { stroke: #6F5D49; }
+        .custom-input:focus {
+            border-color: #D1C3B2;
+            --tw-ring-color: #D1C3B2;
+        }
+
+        /* --- 로그인 페이지 전용 스타일 --- */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+            padding: 1rem;
+        }
+        .login-box {
+            width: 100%;
+            max-width: 400px;
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .login-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .login-title {
+            text-align: center;
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .login-subtitle {
+            text-align: center;
+            margin-top: 0.5rem;
+            color: #6b7280;
+        }
+        .login-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            margin-top: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .login-input:focus {
+            border-color: #D1C3B2;
+            box-shadow: 0 0 0 3px rgba(226, 214, 196, 0.5);
+        }
+        .login-button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1.5rem;
+            background-color: #E2D6C4;
+            color: #6F5D49;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .login-button:hover {
+            background-color: #D1C3B2;
+        }
+    </style>
+</head>
+<body class="h-screen text-gray-800">
+
+    <!-- 로그인 상태일 때만 보이는 메인 앱 레이아웃 -->
+    <div id="app-layout" class="flex h-full w-full hidden">
+        <!-- 1. 고정 사이드바 메뉴 -->
+        <aside class="w-20 bg-white shadow-lg flex flex-col items-center py-6 space-y-6 z-10">
+            <!-- 로고 -->
+            <div class="w-10 h-10 point-bg rounded-lg flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+            </div>
+            <nav class="flex flex-col items-center space-y-4">
+                <a href="#" id="nav-dashboard" class="sidebar-item p-3 rounded-lg text-gray-500 hover:bg-gray-100" onclick="showPage('dashboard')"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg></a>
+                <a href="#" id="nav-editor" class="sidebar-item p-3 rounded-lg text-gray-500 hover:bg-gray-100" onclick="showPage('editor')"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></a>
+                <a href="#" id="nav-challenge" class="sidebar-item p-3 rounded-lg text-gray-500 hover:bg-gray-100" onclick="showPage('challenge')"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-12v4m-2-2h4m5 4v4m-2-2h4M17 3l-4.5 5.5L17 12m-2 8l-4.5-5.5L15 19" /></svg></a>
+                <!-- 로그아웃 버튼 -->
+                <a href="#" id="nav-logout" class="sidebar-item p-3 rounded-lg text-gray-500 hover:bg-gray-100" onclick="handleLogout()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m12.75-3h-12.75" /></svg>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 2. 메인 콘텐츠 영역 -->
+        <main id="main-content" class="flex-1 overflow-y-auto">
+            <!-- 대시보드 페이지 -->
+            <div id="page-dashboard" class="p-8">
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">My Page</h1>
+                        <p class="text-gray-500">최서연의 슬기로운 기록생활</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input type="text" placeholder="검색" class="custom-input bg-white pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <img src="https://placehold.co/40x40/E2D6C4/6F5D49?text=Me" alt="Profile" class="w-10 h-10 rounded-full">
+                    </div>
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-gray-500 text-sm font-medium">현재 포인트</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">1,250 P</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-gray-500 text-sm font-medium">이번 달 기록</h3>
+                        <p class="text-3xl font-bold text-gray-800 mt-2">15 건</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow border-2 point-border">
+                        <h3 class="point-text text-sm font-medium">D-Day</h3>
+                        <p class="text-3xl font-bold point-text mt-2">중간고사 D-38</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">최근 기록</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                                <div>
+                                    <p class="font-semibold text-gray-700">웹 스터디_개발 일지1</p>
+                                    <p class="text-sm text-gray-500">2025. 09. 12.</p>
+                                </div>
+                                <span class="text-xs font-medium text-gray-500">#개발 #웹</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                                <div>
+                                    <p class="font-semibold text-gray-700">부산대 카공하기 좋은 카페</p>
+                                    <p class="text-sm text-gray-500">2025. 09. 10.</p>
+                                </div>
+                                <span class="text-xs font-medium text-gray-500">#일상 #카페</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                                <div>
+                                    <p class="font-semibold text-gray-700">프원실 과제 정리</p>
+                                    <p class="text-sm text-gray-500">2025. 09. 08.</p>
+                                </div>
+                                <span class="text-xs font-medium text-gray-500">#코딩 #과제</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">오늘의 챌린지</h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input id="challenge1" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#8A745B] focus:ring-[#D1C3B2]" checked>
+                                <label for="challenge1" class="ml-3 text-gray-700">기록 1건 작성하기</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="challenge2" type="checkbox" class="h-4 w-4 rounded border-gray-300 text-[#8A745B] focus:ring-[#D1C3B2]">
+                                <label for="challenge2" class="ml-3 text-gray-700">오늘의 퀴즈 풀기</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 글쓰기 페이지 -->
+            <div id="page-editor" class="hidden p-8">
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">My Log</h1>
+                        <p class="text-gray-500">최서연의 슬기로운 기록생활</p>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button class="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200">임시저장</button>
+                        <button class="px-4 py-2 text-white point-bg rounded-lg point-bg-hover transition-colors duration-200 font-semibold">발행하기</button>
+                    </div>
+                </header>
+                <div class="bg-white p-8 rounded-lg shadow">
+                    <input type="text" placeholder="제목을 입력하세요" class="w-full text-4xl font-bold mb-6 pb-2 border-b bg-transparent border-gray-300 focus:outline-none focus:border-[#E2D6C4] placeholder-gray-400">
+                    <textarea placeholder="내용을 입력하세요..." class="w-full h-96 bg-transparent text-gray-700 leading-relaxed focus:outline-none resize-none placeholder-gray-400"></textarea>
+                    <div class="mt-6 pt-4 border-t border-gray-200">
+                        <input type="text" placeholder="#태그를 입력하세요 (예: #개발 #일상)" class="custom-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 placeholder-gray-400">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 챌린지 페이지 -->
+            <div id="page-challenge" class="hidden p-8">
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white">Today's CHALLENGE</h1>
+                        <p class="text-gray-400 mt-1">매일 새로운 퀴즈와 미션에 도전하고 포인트를 획득하세요!</p>
+                    </div>
+                    <img src="https://placehold.co/40x40/F59E0B/1A202C?text=Me" alt="Profile" class="w-10 h-10 rounded-full">
+                </header>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-[#2D3748] p-6 rounded-lg shadow-lg flex flex-col justify-between hover:scale-105 transition-transform duration-200">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">O/X Quiz</h3>
+                            <p class="text-gray-400 mt-2">진실 혹은 거짓...?</p>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-lg font-semibold text-[#F59E0B]">🎁 50 P</span>
+                            <button class="bg-[#F59E0B] text-[#1A202C] font-bold py-2 px-4 rounded-lg hover:bg-amber-500 transition-colors duration-200">도전하기</button>
+                        </div>
+                    </div>
+                    <div class="bg-[#2D3748] p-6 rounded-lg shadow-lg flex flex-col justify-between hover:scale-105 transition-transform duration-200">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Memory Game</h3>
+                            <p class="text-gray-400 mt-2">내 기억력을 테스트해보자!</p>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-lg font-semibold text-[#F59E0B]">🎁 100 P</span>
+                            <button class="bg-[#F59E0B] text-[#1A202C] font-bold py-2 px-4 rounded-lg hover:bg-amber-500 transition-colors duration-200">도전하기</button>
+                        </div>
+                    </div>
+                    <div class="bg-[#2D3748] p-6 rounded-lg shadow-lg flex flex-col justify-between opacity-60">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">오늘의 미션</h3>
+                            <p class="text-gray-400 mt-2">오늘의 일상이나 학습 내용을 기록해보세요.(기록 1건 작성)</p>
+                        </div>
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-lg font-semibold text-gray-500">✔ 완료</span>
+                            <button class="bg-gray-600 text-gray-400 font-bold py-2 px-4 rounded-lg cursor-not-allowed">완료됨</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 로그아웃 상태일 때만 보이는 로그인 페이지 -->
+    <div id="login-page" class="w-full hidden">
+        <div class="login-container">
+            <div class="login-box">
+                <div class="login-logo">
+                    <div class="w-12 h-12 point-bg rounded-lg flex items-center justify-center">
+                         <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                    </div>
+                </div>
+                <h1 class="login-title">슬기로운 기록생활</h1>
+                <p class="login-subtitle">나만의 공간에 오신 것을 환영합니다.</p>
+                <form onsubmit="handleLogin(event)" class="mt-6">
+                    <input type="text" id="username" placeholder="아이디" class="login-input">
+                    <input type="password" id="password" placeholder="비밀번호" class="login-input">
+                    <button type="submit" class="login-button">로그인</button>
+                </form>
+                <p class="mt-4 text-center text-sm text-gray-500">계정이 없으신가요? <a href="#" class="font-semibold point-text hover:underline">가입하기</a></p>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 페이지 로드 시 실행될 함수 ---
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+        });
+
+        // --- 로그인 상태 확인 및 UI 업데이트 ---
+        function checkLoginStatus() {
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                document.getElementById('app-layout').classList.remove('hidden');
+                document.getElementById('login-page').classList.add('hidden');
+                showPage('dashboard'); // 로그인 시 첫 화면은 대시보드
+            } else {
+                document.getElementById('app-layout').classList.add('hidden');
+                document.getElementById('login-page').classList.remove('hidden');
+            }
+        }
+
+        // --- 로그인 처리 (서버 전송) ---
+        async function handleLogin(event) {
+            event.preventDefault(); // 폼의 기본 제출 동작(새로고침)을 막습니다.
+
+            // 1. 입력된 값 가져오기
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+
+            // 2. 서버로 보낼 데이터 준비 (JSON 형식)
+            const dataToSend = {
+                username: username,
+                password: password
+            };
+
+            try {
+                // 3. fetch를 사용해 서버에 POST 요청 보내기
+                //    '/api/login'은 실제 서버의 로그인 API 주소입니다.
+                const response = await fetch('http://localhost:3000/api/login', {
+                    method: 'POST', // 요청 방식
+                    headers: {
+                        'Content-Type': 'application/json' // 보내는 데이터의 타입
+                    },
+                    body: JSON.stringify(dataToSend) // JavaScript 객체를 JSON 문자열로 변환
+                });
+
+                // 4. 서버로부터 응답 처리
+                if (response.ok) { // HTTP 상태 코드가 200-299일 경우
+                    const result = await response.json(); // 응답 본문을 JSON으로 파싱
+                    console.log('로그인 성공:', result);
+                    
+                    // 예: 서버가 토큰을 보내주면 저장할 수 있습니다.
+                    // localStorage.setItem('token', result.token); 
+
+                    // 로그인 성공 시 UI 업데이트
+                    localStorage.setItem('isLoggedIn', 'true');
+                    checkLoginStatus();
+                } else {
+                    // 서버가 에러 응답을 보냈을 경우 (예: 아이디/비번 틀림)
+                    const errorData = await response.json();
+                    alert('로그인 실패: ' + (errorData.message || '다시 시도해주세요.'));
+                }
+            } catch (error) {
+                // 네트워크 에러 등 fetch 요청 자체가 실패했을 경우
+                console.error('로그인 요청 중 에러 발생:', error);
+                alert('서버와 통신 중 문제가 발생했습니다.');
+            }
+        }
+
+        // --- 로그아웃 처리 ---
+        function handleLogout() {
+            // 실제로는 서버에 로그아웃 요청을 보내 토큰을 무효화할 수도 있습니다.
+            localStorage.removeItem('isLoggedIn');
+            // localStorage.removeItem('token');
+            checkLoginStatus();
+        }
+
+        // --- 페이지 전환 스크립트 ---
+        function showPage(pageId) {
+            const mainContent = document.getElementById('main-content');
+            
+            // 모든 페이지 숨기기
+            const pages = mainContent.children;
+            for (let page of pages) {
+                page.classList.add('hidden');
+            }
+
+            // 클릭된 페이지 보이기
+            document.getElementById('page-' + pageId).classList.remove('hidden');
+            
+            // 테마 변경
+            if (pageId === 'challenge') {
+                mainContent.style.backgroundColor = '#1A202C';
+            } else {
+                mainContent.style.backgroundColor = '#f8f9fa';
+            }
+
+            // 메뉴 활성화 스타일
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            document.getElementById('nav-' + pageId).classList.add('active');
+        }
+    </script>
+</body>
+</html>
+
