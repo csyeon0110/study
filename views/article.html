@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Log 데이터가 템플릿 변수 log로 전달됨 -->
+    <title>{{ log.title }}의 기록</title> 
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Nanum Myeongjo 폰트 로드 (일기장 컨셉) */
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Myeongjo', serif;
+            background-color: #fcf8f0; /* 밝은 종이색 */
+            color: #333;
+        }
+        .container { max-width: 800px; }
+        .article-box {
+            background-color: #ffffff;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05); /* 은은한 그림자 */
+            border-left: 5px solid #a07f60;
+        }
+        /* ⭐⭐ 들여쓰기 문제 해결용 CSS 추가 ⭐⭐ */
+        .log-content-section {
+            /* 들여쓰기 기본값 0으로 설정 */
+            text-indent: 0 !important; 
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center">
+    <div class="container">
+        <!-- 네비게이션 -->
+        <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
+            <a href="/" class="text-[#7c5d43] hover:text-[#a07f60]">HOME</a>
+            <a href="/logs" class="text-[#7c5d43] font-bold hover:text-[#a07f60]">LOGS</a>
+            <a href="/challenge" class="text-[#7c5d43] hover:text-[#a07f60]">CHALLENGE</a>
+            <a href="/logout" class="text-[#c75e5e] hover:text-[#e07f7f]">LOGOUT</a>
+        </nav>
+
+        <!-- 기록 상세 내용 -->
+        <div class="article-box p-8 rounded-xl">
+            <header class="mb-6 border-b border-gray-200 pb-4">
+                <h1 class="text-3xl font-bold text-[#543b2f] mb-1">{{ log.title }}</h1>
+                <p class="text-sm text-gray-500">
+                    작성일: <span class="text-[#a07f60]">{{ log.created_at | date('YYYY년 MM월 DD일 HH:mm') }}</span>
+                </p>
+            </header>
+
+            <section class="log-content-section prose max-w-none text-lg leading-relaxed whitespace-pre-wrap">
+                <!-- 줄 바꿈을 위해 whitespace-pre-wrap 사용 -->
+{{ log.content }}
+            </section>
+
+            <div class="mt-8 pt-4 border-t border-gray-200 flex justify-end">
+                <a href="/logs" class="px-6 py-2 bg-[#7c5d43] text-white rounded-lg hover:bg-[#543b2f] transition duration-200">
+                    목록으로 돌아가기
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

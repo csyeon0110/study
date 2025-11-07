@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nickname }}의 기록 목록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Myeongjo', serif;
+            background-color: #fcf8f0; /* 밝은 종이색 */
+            color: #333;
+        }
+        .container { max-width: 900px; }
+        .log-entry {
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 5px solid #a07f60; /* 일기장 줄 구분선 */
+        }
+        .log-entry:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center">
+    <div class="container">
+        <!-- 네비게이션: 클래식한 폰트와 점선 구분선 적용 -->
+        <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
+            <a href="/" class="text-[#7c5d43] hover:text-[#a07f60]">HOME</a>
+            <a href="/logs" class="text-[#7c5d43] font-bold hover:text-[#a07f60]">LOGS</a>
+            <a href="/challenge" class="text-[#7c5d43] hover:text-[#a07f60]">CHALLENGE</a>
+            <a href="/logout" class="text-[#c75e5e] hover:text-[#e07f7f]">LOGOUT</a>
+        </nav>
+
+        <header class="mb-10 text-[#543b2f] border-b pb-5">
+            <h1 class="text-5xl font-extrabold mb-3">LOGS</h1>
+            <p class="text-xl text-gray-600">
+                <b class="text-[#964B00] font-bold">{{ nickname }}</b>의 기록 목록
+            </p>
+        </header>
+
+        <!-- 새 글 쓰기 버튼 -->
+        <div class="flex justify-end mb-6">
+            <a href="/post" class="px-4 py-2 bg-[#a07f60] text-white rounded-full shadow-md hover:bg-[#7c5d43] transition duration-200">
+                + new log
+            </a>
+        </div>
+        
+        <!-- 기록 목록 -->
+        <div id="log-list" class="space-y-6">
+            {% if logs and logs.length > 0 %}
+                {% for log in logs %}
+                    <div class="log-entry p-6 bg-white rounded-lg shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <h2 class="text-2xl font-bold text-[#543b2f]">{{ log.title }}</h2>
+                            <span class="text-sm text-gray-400">{{ log.createdAt | date('YYYY.MM.DD') }}</span>
+                        </div>
+                        <p class="text-gray-600 line-clamp-2 mb-4">{{ log.content | truncate(150) }}</p>
+                        <div class="flex justify-end space-x-3 text-sm">
+                        <a href="/logs/{{ log.id }}" class="text-[#a07f60] hover:underline">자세히 보기</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm">
+                    <p class="text-lg mb-2">아직 작성된 기록이 없습니다.</p>
+                    <p>지금 바로 <a href="/post" class="text-[#a07f60] font-medium">새 기록</a>을 남겨보세요!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nickname }}의 도전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 게임/기술 느낌의 폰트 */
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Gothic Coding', monospace;
+            background-color: #1a1a2e; /* 깊은 밤색 (어두운 배경) */
+            color: #ffffff; /* 흰색 기본 글자 */
+        }
+        .container { max-width: 1000px; }
+        .challenge-card {
+            background-color: #2e2e4e; /* 카드 배경 */
+            border: 1px solid #ffc107; /* 노란색 테두리 */
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .challenge-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.4);
+        }
+        /* 강조 버튼 스타일 */
+        .btn-yellow {
+            background-color: #ffc107; /* 노란색 */
+            color: #1a1a2e; /* 버튼 내부 글자색 */
+            font-weight: 700;
+            transition: background-color 0.2s;
+        }
+        .btn-yellow:hover {
+            background-color: #ffe082;
+        }
+        .accent-text {
+            color: #ffc107; /* 노란색 강조 글자 */
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center">
+    <div class="container w-full">
+        <!-- 네비게이션 -->
+        <nav class="flex space-x-6 mb-12 border-b-2 border-dashed border-[#ffc107] pb-4">
+            <a href="/" class="text-white hover:text-[#ffc107]">HOME</a>
+            <a href="/logs" class="text-white hover:text-[#ffc107]">LOGS</a>
+            <a href="/challenge" class="accent-text font-bold hover:text-white">CHALLENGE</a>
+            <a href="/logout" class="text-[#c75e5e] hover:text-white">LOGOUT</a>
+        </nav>
+
+        <header class="mb-12 text-white">
+            <h1 class="text-5xl font-extrabold mb-3 accent-text">CHALLENGE HUB</h1>
+            <p class="text-lg text-gray-400">
+                게임도 하고! 포인트도 얻자! (내 포인트 : {{ point }}점)
+            </p>
+        </header>
+
+        <!-- 챌린지 그리드 레이아웃 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <!-- 섹션 1: 오늘의 챌린지 (일일 목표) -->
+            <div class="challenge-card p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-dotted border-gray-600 pb-3">
+                    <span class="accent-text">01.</span> 오늘의 퀘스트
+                </h2>
+                <div class="space-y-4">
+                    <div class="p-3 bg-[#1a1a2e] rounded-lg">
+                        <p class="text-lg font-medium mb-1">📝 기록 남기기 </p>
+                        <span class="text-sm text-gray-400">오늘은 어떤 일이 있었나요?</span>
+                        <button class="w-full mt-3 py-2 btn-yellow rounded-lg text-sm" onclick="window.location.href='/post'">
+                            LOGS 작성하러 가기
+                        </button>
+                    </div>
+                    <div class="p-3 bg-[#1a1a2e] rounded-lg">
+                        <p class="text-lg font-medium mb-1">🎮 게임 참여하기</p>
+                        <span class="text-sm text-gray-400">OX 퀴즈 또는 카드 게임에 참여하세요!</span>
+                        <!--<button class="w-full mt-3 py-2 btn-yellow rounded-lg text-sm">
+                            게임 시작 (포인트 추적)
+                        </button>-->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 섹션 2: OX 퀴즈 -->
+            <div class="challenge-card p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-dotted border-gray-600 pb-3">
+                    <span class="accent-text">02.</span> OX 퀴즈
+                </h2>
+                <p class="text-gray-400 mb-6">나의 상식은...?</p><br>
+                <div class="text-center">
+                    <span class="text-5xl font-extrabold accent-text block mb-4">O/X</span><br>
+                    <button class="w-full py-3 btn-yellow rounded-lg text-lg" onclick="window.location.href='/ox'">
+                        게임 시작
+                    </button>
+                </div>
+            </div>
+
+            <!-- 섹션 3: 카드 짝맞추기 게임 -->
+            <div class="challenge-card p-6 rounded-xl">
+                <h2 class="text-2xl font-bold mb-4 border-b-2 border-dotted border-gray-600 pb-3">
+                    <span class="accent-text">03.</span> 메모리 게임
+                </h2>
+                <p class="text-gray-400 mb-6">기억력을 테스트해 보자!</p><br>
+                <div class="text-center">
+                    <span class="text-5xl font-extrabold accent-text block mb-4">🃏🃏</span><br>
+                    <button class="w-full py-3 btn-yellow rounded-lg text-lg" onclick="window.location.href='/card'">
+                        게임 시작
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

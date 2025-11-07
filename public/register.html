@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>기록생활 회원가입</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Nanum Myeongjo 폰트 로드 */
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Myeongjo', serif; /* 일기장 폰트 적용 */
+            background-color: #fcf8f0; /* 밝은 종이색 배경 */
+            color: #333;
+        }
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <!-- 회원가입 카드 -->
+    <div class="w-full max-w-lg bg-white p-8 rounded-xl shadow-2xl border border-gray-200">
+        <h2 class="text-3xl font-bold text-[#543b2f] mb-8 text-center border-b pb-3">
+            회원가입
+        </h2>
+        
+        <!-- 주의: 파일 업로드를 위해 enctype="multipart/form-data" 설정 -->
+        <form id="registerForm" class="space-y-4" enctype="multipart/form-data">
+            
+            <!-- 닉네임 (필수) -->
+            <div>
+                <label for="nickname" class="block text-sm font-medium text-gray-700 mb-1">아이디 (닉네임) *</label>
+                <input type="text" id="nickname" name="nickname" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner">
+            </div>
+            
+            <!-- 비밀번호 (필수) -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">비밀번호 *</label>
+                <input type="password" id="password" name="password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner">
+            </div>
+
+            <!-- 이메일 (필수) -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">이메일 *</label>
+                <input type="email" id="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner">
+            </div>
+
+            <!-- 이름 (선택) -->
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">이름</label>
+                <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner">
+            </div>
+            
+            <!-- 코멘트 (선택) -->
+            <div>
+                <label for="comment" class="block text-sm font-medium text-gray-700 mb-1">상태 메시지</label>
+                <input type="text" id="comment" name="comment" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner">
+            </div>
+
+            <!-- 프로필 이미지 업로드 (추가됨) -->
+            <div>
+                <label for="img_file" class="block text-sm font-medium text-gray-700 mb-1">프로필 이미지 (선택)</label>
+                <input type="file" id="img_file" name="img_file" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner bg-gray-50 text-sm">
+                <!--<p class="text-xs text-gray-500 mt-1">파일 업로드 시, 기본 이미지가 아닌 업로드한 이미지로 설정됩니다.</p>-->
+            </div>
+            
+            <button type="submit" class="w-full bg-[#a07f60] hover:bg-[#7c5d43] text-white font-semibold py-2.5 rounded-lg transition duration-200 shadow-lg mt-6 disabled:bg-gray-400">
+                회원가입 완료
+            </button>
+        </form>
+
+        <p class="mt-6 text-center text-sm font-medium text-gray-500">
+            이미 계정이 있으신가요? <a href="/login.html" class="text-[#a07f60] hover:text-[#7c5d43] font-bold">로그인</a>
+        </p>
+    </div>
+
+    <!-- 커스텀 메시지 모달 -->
+    <div id="messageModal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+            <h3 class="text-xl font-bold text-[#543b2f] mb-4" id="modalTitle">알림</h3>
+            <p class="text-gray-700 mb-6" id="modalText"></p>
+            <div class="flex justify-end">
+                <button onclick="closeModal()" class="bg-[#a07f60] hover:bg-[#7c5d43] text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                    확인
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- 유틸리티: 메시지 모달 ---
+        const messageModal = document.getElementById('messageModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+        let redirectTimer = null; 
+
+        function showModal(title, message, redirectPath = null) {
+            if (redirectTimer) clearTimeout(redirectTimer);
+            
+            modalTitle.textContent = title;
+            modalText.textContent = message;
+            messageModal.classList.remove('hidden');
+            
+            // 모달 애니메이션 시작
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            if (redirectPath) {
+                // 성공 후 로그인 페이지로 자동 이동
+                redirectTimer = setTimeout(() => {
+                    window.location.href = redirectPath; 
+                }, 1500); // 1.5초 후 이동
+            }
+        }
+
+        function closeModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            
+            setTimeout(() => {
+                messageModal.classList.add('hidden');
+            }, 300);
+
+            if (redirectTimer) clearTimeout(redirectTimer);
+        }
+
+        // --- 회원가입 처리 (서버 전송) ---
+        document.getElementById('registerForm').addEventListener('submit', handleRegister);
+
+        async function handleRegister(event) {
+            event.preventDefault(); 
+            
+            const form = event.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+
+            // FormData 사용: 파일 업로드를 위해 form 전체를 객체화
+            const formData = new FormData(form);
+
+            submitButton.textContent = '가입 처리 중...';
+            submitButton.disabled = true;
+
+            try {
+                // Content-Type을 지정하지 않아야 FormData가 정상적으로 전송됨
+                const response = await fetch('/api/register', { 
+                    method: 'POST', 
+                    body: formData // FormData 객체 그대로 전송
+                });
+
+                const result = await response.json();
+
+                if (response.ok) { 
+                    // 회원가입 성공 후 로그인 페이지로 이동
+                    showModal('가입 성공', result.message || '로그인 페이지로 이동합니다.', '/login.html');
+                    
+                } else {
+                    // 서버 에러 (400, 409, 500 등)
+                    const errorMessage = result.message || '회원가입에 실패했습니다.';
+                    showModal('가입 실패', errorMessage);
+                    submitButton.disabled = false;
+                    submitButton.textContent = '회원가입 완료';
+                }
+            } catch (error) {
+                console.error('회원가입 요청 중 에러 발생:', error);
+                showModal('통신 에러', '서버와 통신 중 문제가 발생했습니다.');
+                submitButton.disabled = false;
+                submitButton.textContent = '회원가입 완료';
+            }
+        }
+    </script>
+</body>
+</html>

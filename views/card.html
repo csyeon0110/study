@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메모리 게임 챌린지</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* challenge.html과 동일한 다크 테마 적용 */
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Gothic Coding', monospace;
+            background-color: #1a1a2e; /* 깊은 밤색 (어두운 배경) */
+            color: #ffffff; /* 흰색 기본 글자 */
+        }
+        .container { max-width: 900px; }
+        .game-status {
+            background-color: #2e2e4e;
+            border: 1px solid #ffc107;
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+        }
+        .btn-yellow {
+            background-color: #ffc107;
+            color: #1a1a2e;
+            font-weight: 700;
+            transition: background-color 0.2s;
+        }
+        .btn-yellow:hover {
+            background-color: #ffe082;
+        }
+        .accent-text {
+            color: #ffc107; /* 노란색 강조 글자 */
+        }
+
+        /* 카드 스타일 */
+        .card {
+            width: 90px;
+            height: 90px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .card.is-flipped .card-inner, .card.is-matched .card-inner {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #1a1a2e;
+            font-weight: 900;
+        }
+        /* 카드 뒷면 (숨김 상태) */
+        .card-face-back {
+            background-color: #ffc107; /* 카드 뒷면 노란색 */
+            border: 3px solid #1a1a2e;
+        }
+        /* 카드 앞면 (공개 상태) */
+        .card-face-front {
+            background-color: #ffffff; /* 카드 앞면 흰색 */
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center items-center min-h-screen">
+    <div class="container w-full">
+        <!-- 네비게이션 -->
+        <nav class="flex space-x-6 mb-8 border-b-2 border-dashed border-[#ffc107] pb-4">
+            <a href="/" class="text-white hover:text-[#ffc107]">HOME</a>
+            <a href="/logs" class="text-white hover:text-[#ffc107]">LOGS</a>
+            <a href="/challenge" class="accent-text font-bold hover:text-white">CHALLENGE</a>
+            <a href="/logout" class="text-[#c75e5e] hover:text-white">LOGOUT</a>
+        </nav>
+
+        <header class="mb-8 text-white">
+            <h1 class="text-4xl font-extrabold mb-2 accent-text">메모리 게임</h1>
+            <p class="text-lg text-gray-400">같은 색상 카드 짝을 맞추세요!</p>
+        </header>
+
+        <!-- 게임 상태 및 제어판 -->
+        <div class="game-status p-6 rounded-xl mb-8 flex justify-between items-center">
+            <div class="text-lg">
+                <p>시간: <span id="timerDisplay" class="accent-text font-bold text-2xl">--</span>초</p>
+                <p>점수: <span id="scoreDisplay" class="accent-text font-bold text-2xl">0</span>점</p>
+            </div>
+            <button id="startButton" class="px-6 py-3 btn-yellow rounded-lg text-lg" onclick="startGame()">
+                게임 시작
+            </button>
+        </div>
+
+        <!-- 게임 보드 -->
+        <div id="gameBoard" class="grid grid-cols-5 gap-4 justify-center" style="opacity: 0;">
+            <!-- 카드들이 여기에 동적으로 생성됩니다 -->
+        </div>
+
+        <!-- 커스텀 메시지 모달 (Alert 대체) -->
+        <div id="messageModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full" id="modalContent">
+                <h3 class="text-xl font-bold text-[#543b2f] mb-4" id="modalTitle">알림</h3>
+                <p class="text-gray-700 mb-6" id="modalText"></p>
+                <div class="flex justify-end">
+                    <button onclick="closeModal()" class="bg-[#a07f60] hover:bg-[#7c5d43] text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                        확인
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 게임 설정 ---
+        const GAME_DURATION = 30; // 시간 제한 (초)
+        const INITIAL_REVEAL_TIME = 5; // 초기 공개 시간 (초)
+        const CARD_COUNT = 10; // 카드 개수 (짝 5개)
+        const POINT_PER_MATCH = 10; // 짝당 획득 포인트
+        const COLORS = ['#F08080', '#ADD8E6', '#90EE90', '#FFD700', '#FFA07A']; // 5가지 색상 코드
+
+        // --- 게임 상태 ---
+        let gameActive = false;
+        let score = 0;
+        let timer = GAME_DURATION;
+        let timerInterval;
+        let cards = []; // 게임 보드에 표시될 카드 데이터
+        let flippedCards = []; // 현재 뒤집힌 카드
+        let matchesFound = 0;
+        let gameStarted = false; // 게임 시작 여부 (포인트 지급 로직용)
+
+        // --- DOM 요소 ---
+        const gameBoard = document.getElementById('gameBoard');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const startButton = document.getElementById('startButton');
+        const messageModal = document.getElementById('messageModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+
+        // --- 유틸리티: 모달 (Alert 대체) ---
+        function showModal(title, message, callback = null) {
+            modalTitle.textContent = title;
+            modalText.textContent = message;
+            messageModal.classList.remove('hidden');
+            messageModal.classList.add('flex');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            window.modalCallback = callback; // 콜백 함수 저장
+        }
+
+        function closeModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                messageModal.classList.add('hidden');
+                messageModal.classList.remove('flex');
+            }, 300);
+            if (window.modalCallback) {
+                window.modalCallback();
+                window.modalCallback = null;
+            }
+        }
+
+        // --- 게임 로직 ---
+
+        // 카드 배열 초기화 및 섞기
+        function initializeCards() {
+            let cardValues = [];
+            // 5가지 색상을 두 번씩 추가
+            for (let i = 0; i < CARD_COUNT / 2; i++) {
+                cardValues.push(COLORS[i], COLORS[i]);
+            }
+            // 카드 섞기 (Fisher-Yates 알고리즘)
+            for (let i = cardValues.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cardValues[i], cardValues[j]] = [cardValues[j], cardValues[i]];
+            }
+            return cardValues;
+        }
+
+        // 게임 보드 생성 및 렌더링
+        function renderBoard(cardValues) {
+            gameBoard.innerHTML = '';
+            cards = [];
+            
+            cardValues.forEach((color, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card');
+                cardElement.dataset.index = index;
+                cardElement.dataset.color = color;
+                cardElement.onclick = handleCardClick;
+
+                cardElement.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-face card-face-front" style="background-color: ${color};"></div>
+                        <div class="card-face card-face-back">?</div>
+                    </div>
+                `;
+                gameBoard.appendChild(cardElement);
+                cards.push(cardElement);
+            });
+            gameBoard.style.opacity = 1;
+        }
+
+        // 타이머 시작
+        function startTimer() {
+            clearInterval(timerInterval);
+            timer = GAME_DURATION;
+            timerDisplay.textContent = timer;
+            
+            timerInterval = setInterval(() => {
+                timer--;
+                timerDisplay.textContent = timer;
+                
+                if (timer <= 0) {
+                    clearInterval(timerInterval);
+                    endGame(false); // 시간 초과로 게임 종료
+                }
+            }, 1000);
+        }
+
+        // 초기 카드 공개
+        function initialReveal() {
+            gameActive = false;
+            cards.forEach(card => card.classList.add('is-flipped'));
+            
+            showModal(
+                '준비하세요!', 
+                `카드가 ${INITIAL_REVEAL_TIME}초 동안 공개됩니다. 기억하세요!`,
+                () => { /* do nothing */ } // 모달을 닫아도 아무 일 없음
+            );
+
+            setTimeout(() => {
+                // 모달 강제 종료 및 카드 뒤집기
+                modalContent.classList.add('scale-95', 'opacity-0'); 
+                messageModal.classList.add('hidden');
+                messageModal.classList.remove('flex'); 
+
+                cards.forEach(card => card.classList.remove('is-flipped'));
+                gameActive = true;
+                startTimer(); // 타이머 시작
+            }, INITIAL_REVEAL_TIME * 1000);
+        }
+        
+        // 카드 클릭 핸들러
+        function handleCardClick(event) {
+            if (!gameActive) return;
+
+            const card = event.currentTarget;
+            const cardInner = card.querySelector('.card-inner');
+
+            // 이미 뒤집혔거나 매칭된 카드는 무시
+            if (card.classList.contains('is-flipped') || card.classList.contains('is-matched')) return;
+            if (flippedCards.length >= 2) return;
+
+            card.classList.add('is-flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                gameActive = false; // 일시 정지
+                checkForMatch();
+            }
+        }
+        
+        // 짝 확인
+        function checkForMatch() {
+            const [card1, card2] = flippedCards;
+            const isMatch = card1.dataset.color === card2.dataset.color;
+
+            if (isMatch) {
+                // 짝이 맞음
+                handleMatch(card1, card2);
+            } else {
+                // 짝이 틀림
+                handleMisMatch(card1, card2);
+            }
+        }
+        
+        // 짝이 맞았을 때
+        function handleMatch(card1, card2) {
+            matchesFound++;
+            score += POINT_PER_MATCH;
+            scoreDisplay.textContent = score;
+
+            // 매칭된 상태로 고정
+            card1.classList.add('is-matched');
+            card2.classList.add('is-matched');
+            
+            // UI를 즉시 업데이트하고 1초 뒤에 다음 작업 (게임 계속)
+            setTimeout(() => {
+                flippedCards = [];
+                gameActive = true;
+
+                if (matchesFound === CARD_COUNT / 2) {
+                    endGame(true); // 모든 짝을 맞췄으므로 게임 종료
+                }
+            }, 500);
+        }
+
+        // 짝이 틀렸을 때
+        function handleMisMatch(card1, card2) {
+            // 1초 후 카드를 다시 뒤집음
+            setTimeout(() => {
+                card1.classList.remove('is-flipped');
+                card2.classList.remove('is-flipped');
+                flippedCards = [];
+                gameActive = true;
+            }, 1000);
+        }
+
+        // 게임 종료
+        async function endGame(isWin) {
+            clearInterval(timerInterval);
+            gameActive = false;
+            startButton.textContent = '다시 시작';
+            
+            let finalMessage = `최종 점수: ${score}점`;
+
+            if (isWin) {
+                finalMessage = `모든 짝을 맞췄습니다! 최종 점수: ${score}점`;
+            } else if (timer <= 0) {
+                finalMessage = `시간 초과! 최종 점수: ${score}점`;
+            }
+            
+            // 서버에 게임 결과 및 포인트 요청
+            try {
+                // is_correct 대신 score를 기준으로 판단. 짝을 하나라도 맞췄다면 포인트 지급 로직 시작.
+                const gameSuccess = score > 0;
+
+                const response = await fetch('/api/game/card', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ game_success: gameSuccess, final_score: score, game_type: 'card' })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.pointChange > 0) {
+                        finalMessage += `\n+${result.pointChange} POINT`;
+                    } else if (gameSuccess) {
+                        finalMessage += '\n(오늘은 이미 일일 게임 포인트를 획득했어요.)';
+                    }
+                    showModal(isWin ? '게임 승리!' : '게임 종료', finalMessage);
+                    
+                } else {
+                    showModal('서버 오류', result.message || '점수 처리 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('게임 결과 전송 중 오류 발생:', error);
+                showModal('네트워크 오류', '점수 처리 서버와 통신할 수 없습니다.');
+            }
+        }
+
+        // 게임 시작/재시작
+        function startGame() {
+            // 초기 상태 재설정
+            score = 0;
+            matchesFound = 0;
+            flippedCards = [];
+            scoreDisplay.textContent = score;
+            gameStarted = true; // 게임 시작 플래그
+            
+            // 보드 상태 초기화
+            gameBoard.classList.remove('grid-cols-5');
+            gameBoard.classList.add('grid-cols-5'); // 그리드 재확인
+            
+            const cardValues = initializeCards();
+            renderBoard(cardValues);
+            
+            // 시작 버튼 상태 변경
+            startButton.textContent = '다시 시작';
+            
+            initialReveal(); // 초기 공개 후 타이머 시작
+        }
+
+        // 페이지 로드 시 초기 UI 설정
+        window.onload = function() {
+            timerDisplay.textContent = GAME_DURATION;
+            gameBoard.style.opacity = 0;
+            startButton.textContent = '게임 시작';
+        };
+    </script>
+</body>
+</html>

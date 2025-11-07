@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nickname }}의 슬기로운 기록생활</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Nanum Myeongjo 폰트 로드 (일기장 컨셉) */
+        @import url('https://fonts.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Myeongjo', serif;
+            background-color: #fcf8f0; /* 밝은 종이색 */
+            color: #333;
+        }
+        .container { max-width: 1000px; }
+        .journal-box {
+            background-color: #ffffff; /* 내부 상자 흰색 */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06); /* 연한 그림자 (shadow-sm) */
+            border-left: 5px solid #a07f60; /* 일기장 줄 구분선 (로그 목록 스타일 유지) */
+        }
+        .profile-img-container {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #a07f60;
+            overflow: hidden;
+        }
+        .modal {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center">
+    <div class="container">
+        <!-- 상단 헤더 및 프로필 수정 버튼 영역 -->
+        <div class="flex justify-between items-start mb-10">
+            <!-- 네비게이션 -->
+            <nav class="flex space-x-6 pt-2">
+                <a href="/" class="text-[#7c5d43] font-bold hover:text-[#a07f60]">HOME</a>
+                <a href="/logs" class="text-[#7c5d43] hover:text-[#a07f60]">LOGS</a>
+                <a href="/challenge" class="text-[#7c5d43] hover:text-[#a07f60]">CHALLENGE</a>
+                <a href="/logout" class="text-[#c75e5e] hover:text-[#e07f7f]">LOGOUT</a>
+            </nav>
+            
+            <!-- 개인정보 수정 버튼 -->
+            <a href="/profile" class="text-sm px-4 py-2 bg-[#a07f60] text-white rounded-lg shadow-md hover:bg-[#7c5d43] transition duration-200">
+                개인정보 수정 ⚙️
+            </a>
+        </div>
+
+
+        <header class="mb-10 text-[#543b2f] border-b pb-5">
+            <h1 class="text-5xl font-extrabold mb-3">HOME</h1>
+            <p class="text-xl">
+                <b class="text-[#964B00] font-bold">{{ nickname }}</b>의 슬기로운 기록생활
+            </p>
+        </header>
+
+        <!-- 메인 콘텐츠 레이아웃 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- 왼쪽/중앙 컬럼 (프로필, 기록, D-DAY) -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- 나의 프로필 (개인정보) -->
+                <div id="profile" class="journal-box p-6 rounded-xl">
+                    <h2 class="text-2xl font-bold text-[#543b2f] mb-4 border-b border-gray-200 pb-2">나의 프로필</h2>
+                    <div class="flex items-start space-x-6">
+                        <div class="profile-img-container rounded-full flex-shrink-0">
+                            <!-- img_url을 사용합니다. -->
+                            <img src="{{ img_url }}" alt="Profile Image" class="w-full h-full object-cover"/>
+                        </div>
+                        <div class="flex-grow">
+                            <p class="text-lg font-bold">{{ nickname }} <span class="text-[#964B00]">{{ name }}</span></p>
+                            <p class="text-gray-600 mb-2">{{ email }}</p>
+                            <p class="text-sm text-gray-500 border-l-2 pl-3 mt-1 italic">{{ comment }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 최근 기록 -->
+                <div id="recent-log" class="journal-box p-6 rounded-xl">
+                    <h2 class="text-2xl font-bold text-[#543b2f] mb-4 border-b border-gray-200 pb-2">최근 기록</h2>
+                    {% if recentLogs and recentLogs.length > 0 %}
+                        <div class="space-y-4">
+                        {% for log in recentLogs %}
+                            <div class="border-b border-dotted pb-2">
+                                <p class="text-lg font-semibold">{{ log.title }}</p>
+                                <p class="text-sm text-gray-500">{{ log.created_at | date('YYYY.MM.DD HH:mm') }}</p>
+                            </div>
+                        {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-gray-500">No Logs...</p>
+                        <a href="/post" class="text-[#a07f60] hover:underline text-sm mt-2 block">지금 첫 기록을 남겨보세요.</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 오른쪽 컬럼 (포인트, D-DAY, 챌린지) -->
+            <div class="lg:col-span-1 space-y-8">
+                
+                <!-- MY POINT -->
+                <div id="point" class="journal-box p-6 rounded-xl text-center bg-[#a07f60] text-white">
+                    <p class="text-lg font-medium">MY POINT</p>
+                    <p class="text-5xl font-extrabold mt-1">{{ point }}</p>
+                </div>
+
+                <!-- D-DAY (클릭 시 모달 열림) -->
+                <div id="d-day" onclick="openGoalModal()"
+                     class="journal-box p-6 rounded-xl text-center cursor-pointer hover:bg-gray-50 transition duration-150">
+                    <h2 class="text-lg font-medium mb-1 text-[#543b2f]">D-DAY</h2>
+                    <p class="text-2xl text-gray-700 font-bold mb-1">{{ goalEvent }}</p> <!-- 목표 이벤트명 표시 -->
+                    <p class="text-3xl font-extrabold text-[#7c5d43]">
+                        {% if dDay is not none %}
+                            {% if dDay > 0 %}
+                                D-{{ dDay }} 
+                            {% elif dDay == 0 %}
+                                D-DAY! 🎉
+                            {% else %}
+                                D+{{ dDay * -1 }} 
+                            {% endif %}
+                        {% else %}
+                            중요한 일정을 입력하세요!
+                        {% endif %}
+                    </p>
+                    <p class="text-xs text-gray-500 mt-2">
+                        (클릭하여 디데이를 설정/수정하세요)
+                    </p>
+                </div>
+
+                <!-- TODAY's CHALLENGE -->
+                <div id="challenge-menu" class="journal-box p-6 rounded-xl">
+                    <h2 class="text-lg font-bold mb-3 text-[#543b2f] border-b border-gray-200 pb-2">TODAY's CHALLENGE</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-sm text-gray-700">
+                            <span>📝 오늘 기록 작성하기</span>
+                            <!-- isPostCompleted 상태에 따라 표시 -->
+                            <span class="{% if isPostCompleted %}text-green-600{% else %}text-red-600{% endif %} font-bold">
+                                {% if isPostCompleted %}완료!{% else %}미완료{% endif %}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-700">
+                            <span>🎮 오늘 게임 참여하기</span>
+                            <!-- isGameCompleted 상태에 따라 표시 -->
+                            <span class="{% if isGameCompleted %}text-green-600{% else %}text-red-600{% endif %} font-bold">
+                                {% if isGameCompleted %}완료!{% else %}미완료{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <a href="/challenge" class="mt-4 block text-center text-sm px-4 py-2 bg-[#7c5d43] text-white rounded-lg hover:bg-[#543b2f] transition duration-200">
+                        게임하러 가기!
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Nunjucks 변수를 JS에서 안전하게 사용하기 위한 숨겨진 데이터 -->
+        <div id="goalData" 
+             data-goal-date="{{ goalDateFormatted | default('') }}" 
+             style="display:none;"></div>
+
+
+        <!-- D-DAY 목표 설정 모달 -->
+        <div id="goalModal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-md w-full transform scale-100 opacity-100" id="goalModalContent">
+                <h3 class="text-xl font-bold text-[#543b2f] mb-4 border-b pb-2">D-DAY 설정</h3>
+                <form id="goalForm" class="space-y-4">
+                    <div>
+                        <label for="goal_event" class="block text-sm font-medium text-gray-700 mb-1">이벤트명</label>
+                        <!-- ⭐⭐ 177번째 줄을 이 코드로 대체합니다. (오류 해결) ⭐⭐ -->
+                        <input type="text" id="goal_event" name="goal_event" required
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner"
+                        value="{{ goalEventForInput }}">
+                    </div>
+                    <div>
+                        <label for="goal_date" class="block text-sm font-medium text-gray-700 mb-1">목표 날짜</label>
+                        <input type="date" id="goal_date" name="goal_date" required
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-[#a07f60] focus:border-[#a07f60] transition duration-150 shadow-inner">
+                    </div>
+                    
+                    <div id="modalMessageArea" class="text-center text-sm font-semibold pt-2"></div>
+                    
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeGoalModal()"
+                                class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition duration-200">
+                            취소
+                        </button>
+                        <button type="submit" id="goalSubmitButton"
+                                class="px-4 py-2 bg-[#a07f60] text-white font-bold rounded-lg shadow-md hover:bg-[#7c5d43] transition duration-200">
+                            저장
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // --- D-DAY 모달 함수 ---
+        const goalModal = document.getElementById('goalModal');
+        const goalForm = document.getElementById('goalForm');
+        const messageArea = document.getElementById('modalMessageArea');
+        const goalDataElement = document.getElementById('goalData');
+
+
+        function openGoalModal() {
+            const goalDateInput = document.getElementById('goal_date');
+            
+            // ⭐ data-goal-date 속성에서 안전하게 날짜 문자열을 가져옴 ⭐
+            const currentGoalDateString = goalDataElement.dataset.goalDate; 
+            
+            // D-DAY 날짜가 있으면 input type=date에 미리 채워 넣기
+            if (currentGoalDateString && currentGoalDateString.length === 10) {
+                goalDateInput.value = currentGoalDateString;
+            } else {
+                goalDateInput.value = '';
+            }
+            
+            goalModal.classList.remove('hidden');
+            messageArea.textContent = '';
+        }
+
+        function closeGoalModal() {
+            goalModal.classList.add('hidden');
+        }
+
+        // --- D-DAY 폼 제출 처리 ---
+        goalForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const goalDate = document.getElementById('goal_date').value;
+            const goalEvent = document.getElementById('goal_event').value;
+            const submitButton = document.getElementById('goalSubmitButton');
+
+            if (!goalDate || !goalEvent) {
+                 messageArea.textContent = '날짜와 이벤트명을 모두 입력해주세요.';
+                 return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = '저장 중...';
+
+            try {
+                const response = await fetch('/api/set-goal', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ goal_date: goalDate, goal_event: goalEvent })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageArea.textContent = result.message || '디데이 설정 성공!';
+                    messageArea.classList.add('text-green-600');
+                    messageArea.classList.remove('text-red-600');
+
+                    // 1초 후 모달 닫고 페이지 새로고침 (D-DAY 업데이트 반영)
+                    setTimeout(() => {
+                        closeGoalModal();
+                        window.location.reload(); 
+                    }, 1000); 
+
+                } else {
+                    messageArea.textContent = result.message || '디데이 설정 실패';
+                    messageArea.classList.add('text-red-600');
+                    messageArea.classList.remove('text-green-600');
+                }
+            } catch (error) {
+                console.error('D-DAY 요청 중 에러 발생:', error);
+                messageArea.textContent = '서버 통신 오류.';
+                messageArea.classList.add('text-red-600');
+                messageArea.classList.remove('text-green-600');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = '저장';
+            }
+        });
+    </script>
+</body>
+</html>

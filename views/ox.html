@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OX 퀴즈 챌린지</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* challenge.html과 동일한 다크 테마 적용 */
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Gothic+Coding:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Gothic Coding', monospace;
+            background-color: #1a1a2e; /* 깊은 밤색 (어두운 배경) */
+            color: #ffffff; /* 흰색 기본 글자 */
+        }
+        .container { max-width: 800px; }
+        .quiz-card {
+            background-color: #2e2e4e; /* 카드 배경 */
+            border-left: 8px solid #ffc107; /* 노란색 강조 선 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .ox-button {
+            transition: all 0.2s ease;
+            font-size: 2.5rem; 
+            font-weight: 700;
+        }
+        .ox-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+        .btn-yellow {
+            background-color: #ffc107; /* 노란색 */
+            color: #1a1a2e; /* 버튼 내부 글자색 */
+            font-weight: 700;
+            transition: background-color 0.2s;
+        }
+        .btn-yellow:hover {
+            background-color: #ffe082;
+        }
+        .accent-text {
+            color: #ffc107; /* 노란색 강조 글자 */
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center items-center min-h-screen">
+    <div class="container w-full">
+        <!-- 네비게이션 -->
+        <nav class="flex space-x-6 mb-12 border-b-2 border-dashed border-[#ffc107] pb-4">
+            <a href="/" class="text-white hover:text-[#ffc107]">HOME</a>
+            <a href="/logs" class="text-white hover:text-[#ffc107]">LOGS</a>
+            <a href="/challenge" class="accent-text font-bold hover:text-white">CHALLENGE</a>
+            <a href="/logout" class="text-[#c75e5e] hover:text-white">LOGOUT</a>
+        </nav>
+
+        <header class="mb-10 text-white border-b pb-5">
+            <h1 class="text-4xl font-extrabold mb-3 accent-text">OX 퀴즈</h1>
+            <p class="text-lg text-gray-400">
+                퀴즈를 풀고 포인트를 얻자!
+            </p>
+        </header>
+
+        <!-- 퀴즈 카드 영역 -->
+        <div id="quizContainer" class="quiz-card p-10 rounded-xl space-y-8">
+            
+            <!-- 퀴즈 표시 영역 -->
+            <p class="text-2xl font-bold mb-4 min-h-[120px] flex items-center justify-center text-center text-white" id="quizQuestion">
+                [시스템] 아래 버튼을 눌려 새 퀴즈를 생성하세요!
+            </p>
+
+            <!-- 정답 결과 표시 영역 -->
+            <div class="text-xl font-bold text-center py-3 rounded-lg min-h-[50px] transition-all duration-300" id="quizResult">
+                
+            </div>
+
+            <!-- O/X 버튼 -->
+            <div class="flex space-x-8 justify-center">
+                <button id="oButton" onclick="checkAnswer('O')" disabled
+                        class="ox-button flex items-center justify-center w-32 h-32 rounded-full bg-[#ffc107] text-[#1a1a2e] border-4 border-[#1a1a2e] hover:bg-[#ffe082] disabled:opacity-50">
+                    O
+                </button>
+                <button id="xButton" onclick="checkAnswer('X')" disabled
+                        class="ox-button flex items-center justify-center w-32 h-32 rounded-full bg-[#ffc107] text-[#1a1a2e] border-4 border-[#1a1a2e] hover:bg-[#ffe082] disabled:opacity-50">
+                    X
+                </button>
+            </div>
+            
+            <!-- 퀴즈 시작/다음 퀴즈 버튼 -->
+            <div class="flex justify-center pt-4">
+                <button id="startButton" onclick="startQuiz()"
+                        class="px-8 py-3 btn-yellow text-[#1a1a2e] font-bold rounded-lg shadow-lg transition duration-200 disabled:bg-gray-400">
+                    새 퀴즈
+                </button>
+            </div>
+
+            <!-- 로딩 인디케이터 -->
+            <div id="loading" class="text-center hidden">
+                <p class="text-lg animate-pulse accent-text">로딩중... 👾</p>
+            </div>
+        </div>
+
+        <!-- 커스텀 메시지 모달 (Alert 대체) -->
+        <div id="messageModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
+                <h3 class="text-xl font-bold text-[#543b2f] mb-4" id="modalTitle"></h3>
+                <p class="text-gray-700 mb-6" id="modalText"></p>
+                <div class="flex justify-end">
+                    <button onclick="closeModal()" class="bg-[#a07f60] hover:bg-[#7c5d43] text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                        확인
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 전역 변수 및 API 설정 ---
+        let currentQuiz = null; // 현재 퀴즈 객체 ({question: string, answer: 'O'|'X'})
+        const API_URL = "https://opentdb.com/api.php?amount=1&type=boolean";
+        // NOTE: Open Trivia Database는 별도 API 키가 필요 없습니다.
+
+        // --- DOM 요소 캐시 ---
+        const quizQuestion = document.getElementById('quizQuestion');
+        const quizResult = document.getElementById('quizResult');
+        const oButton = document.getElementById('oButton');
+        const xButton = document.getElementById('xButton');
+        const startButton = document.getElementById('startButton');
+        const loading = document.getElementById('loading');
+        
+        // --- 유틸리티: HTML 엔티티 디코딩 (Opentdb에서 필요) ---
+        function htmlDecode(input) {
+            const doc = new DOMParser().parseFromString(input, "text/html");
+            return doc.documentElement.textContent;
+        }
+
+        // --- 유틸리티: 모달 (Alert 대체) ---
+        const messageModal = document.getElementById('messageModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalText.textContent = message;
+            messageModal.classList.remove('hidden');
+            messageModal.classList.add('flex');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            setTimeout(() => {
+                messageModal.classList.add('hidden');
+                messageModal.classList.remove('flex');
+            }, 300);
+        }
+
+        // --- 퀴즈 생성 (Open Trivia Database API 호출) ---
+        async function generateQuiz() {
+            // 로딩 상태 표시
+            startButton.disabled = true;
+            loading.classList.remove('hidden');
+            quizQuestion.textContent = "데이터를 로드하는 중입니다...";
+
+            try {
+                const response = await fetch(API_URL);
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.response_code !== 0 || data.results.length === 0) {
+                    throw new Error("퀴즈 데이터를 찾을 수 없습니다.");
+                }
+
+                const rawQuiz = data.results[0];
+
+                // True/False를 O/X로 매핑
+                const answerMapping = rawQuiz.correct_answer === 'True' ? 'O' : 'X';
+
+                // 데이터 검증 및 반환
+                return {
+                    question: htmlDecode(rawQuiz.question),
+                    answer: answerMapping,
+                };
+
+            } catch (error) {
+                console.error("퀴즈 생성 오류:", error);
+                showModal('API 연결 오류', '퀴즈를 불러오는 데 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                return null;
+            } finally {
+                loading.classList.add('hidden');
+                startButton.disabled = false;
+            }
+        }
+
+        // --- 퀴즈 시작 버튼 핸들러 ---
+        async function startQuiz() {
+            // 상태 초기화
+            currentQuiz = null;
+            quizResult.textContent = "";
+            quizResult.classList.remove('bg-green-100', 'bg-red-100', 'text-green-700', 'text-red-700');
+            oButton.disabled = true;
+            xButton.disabled = true;
+
+            const quiz = await generateQuiz();
+
+            if (quiz) {
+                currentQuiz = quiz;
+                quizQuestion.textContent = `${quiz.question}`;
+                oButton.disabled = false;
+                xButton.disabled = false;
+                startButton.textContent = '다음 퀴즈 시작';
+            } else {
+                quizQuestion.textContent = "[시스템] 퀴즈 생성에 실패했습니다.";
+                startButton.textContent = '새 퀴즈 시작';
+            }
+        }
+
+        // --- 정답 확인 핸들러 ---
+        async function checkAnswer(userAnswer) {
+            if (!currentQuiz) return; 
+
+            // 버튼 비활성화 
+            oButton.disabled = true;
+            xButton.disabled = true;
+            startButton.disabled = true;
+            
+            const correctAnswer = currentQuiz.answer;
+            let isCorrect = (userAnswer === correctAnswer);
+
+            // 1. UI 결과 표시
+            if (isCorrect) {
+                quizResult.textContent = `정답입니다! (정답: ${correctAnswer}) 🎉`;
+                quizResult.classList.add('bg-green-600', 'text-white');
+                quizResult.classList.remove('bg-red-600', 'text-white');
+            } else {
+                quizResult.textContent = `오답입니다 (정답: ${correctAnswer}) 😔`;
+                quizResult.classList.add('bg-red-600', 'text-white');
+                quizResult.classList.remove('bg-green-600', 'text-white');
+            }
+            
+            // 2. 서버에 정답 여부 및 포인트 요청
+            try {
+                // 이 엔드포인트는 app.js에 정의된 POST /api/game/ox와 일치합니다.
+                const response = await fetch('/api/game/ox', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_correct: isCorrect, game_type: 'ox' })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    let modalMsg = isCorrect ? 'CORRECT' : 'INCORRECT';
+                    if (result.pointChange > 0) {
+                        modalMsg += `\n+${result.pointChange} POINT`;
+                    }
+                    showModal('퀴즈 결과', modalMsg);
+                    
+                } else {
+                    showModal('서버 오류', result.message || '점수 처리 중 오류가 발생했습니다.');
+                }
+
+            } catch (error) {
+                console.error('게임 결과 전송 중 오류 발생:', error);
+                showModal('네트워크 오류', '점수 처리 서버와 통신할 수 없습니다.');
+            } finally {
+                // 다음 퀴즈 시작을 준비
+                startButton.disabled = false;
+                currentQuiz = null; 
+            }
+        }
+        
+        // 페이지 로드 시 바로 퀴즈 시작
+        window.onload = startQuiz;
+    </script>
+</body>
+</html>

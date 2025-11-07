@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nickname }} 새 기록 작성</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
+        body {
+            font-family: 'Nanum Myeongjo', serif;
+            background-color: #fcf8f0; /* 밝은 종이색 */
+            color: #333;
+        }
+        .container { max-width: 800px; }
+        .journal-form-bg {
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        /* 입력 필드 디자인 (종이 느낌) */
+        input[type="text"], textarea {
+            border: 1px solid #e0e0e0;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus {
+            border-color: #a07f60;
+            outline: none;
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center">
+    <div class="container">
+        <!-- 네비게이션 -->
+        <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
+            <a href="/" class="text-[#7c5d43] hover:text-[#a07f60]">HOME</a>
+            <a href="/logs" class="text-[#7c5d43] hover:text-[#a07f60]">LOGS</a>
+            <a href="/challenge" class="text-[#7c5d43] hover:text-[#a07f60]">CHALLENGE</a>
+            <a href="/logout" class="text-[#c75e5e] hover:text-[#e07f7f]">LOGOUT</a>
+        </nav>
+
+        <header class="mb-10 text-[#543b2f] border-b pb-5">
+            <h1 class="text-4xl font-extrabold mb-3">POST</h1>
+            <p class="text-lg text-gray-600">오늘의 소중한 순간을 기록하세요.</p>
+        </header>
+
+        <!-- 글쓰기 폼 -->
+        <form id="postForm" class="journal-form-bg p-8 rounded-xl">
+            <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+                <div class="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full">
+                    <h3 id="modalTitle" class="text-xl font-bold mb-3 text-[#543b2f]"></h3>
+                    <p id="modalMessage" class="mb-4 text-gray-700"></p>
+                    <button type="button" onclick="closeModal()" class="w-full py-2 bg-[#a07f60] text-white rounded hover:bg-[#7c5d43]">확인</button>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label for="title" class="block text-lg font-medium mb-2 text-[#543b2f]">제목</label>
+                <input type="text" id="title" name="title" required
+                       class="w-full px-4 py-3 rounded-lg text-lg placeholder-gray-400">
+            </div>
+
+            <div class="mb-6">
+                <label for="content" class="block text-lg font-medium mb-2 text-[#543b2f]">내용</label>
+                <textarea id="content" name="content" rows="15" required
+                          class="w-full px-4 py-3 rounded-lg text-lg placeholder-gray-400 resize-none"></textarea>
+            </div>
+
+            <div class="flex justify-end space-x-4">
+                <button type="button" onclick="window.history.back()"
+                        class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition duration-200">
+                    취소
+                </button>
+                <button type="submit" id="submitButton"
+                        class="px-8 py-3 bg-[#a07f60] text-white font-bold rounded-lg shadow-lg hover:bg-[#7c5d43] transition duration-200">
+                    저장
+                </button>
+            </div>
+        </form>
+
+    </div>
+    <script>
+        // --- 모달 함수 ---
+        function showModal(title, message) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('messageModal').classList.remove('hidden');
+            document.getElementById('messageModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('messageModal').classList.add('hidden');
+            document.getElementById('messageModal').classList.remove('flex');
+        }
+
+        // --- 글쓰기 처리 ---
+        document.getElementById('postForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const title = document.getElementById('title').value;
+            const content = document.getElementById('content').value;
+            const submitButton = document.getElementById('submitButton');
+
+            submitButton.disabled = true;
+            submitButton.textContent = '저장 중...';
+
+            try {
+                // 이 주소는 서버의 기록 저장 API 엔드포인트와 일치해야 합니다.
+                const response = await fetch('/api/log', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, content })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    let message = result.message;
+                    if (result.pointChange > 0) {
+                        message += ` ${result.pointChange} 포인트를 획득했습니다!`;
+                    }
+                    showModal('기록 저장 성공', message);
+                    
+                    // 성공 후 목록 페이지로 이동
+                    setTimeout(() => {
+                        window.location.href = '/logs'; 
+                    }, 1500); 
+
+                } else {
+                    showModal('기록 저장 실패', result.message || '서버 오류가 발생했습니다.');
+                    submitButton.disabled = false;
+                    submitButton.textContent = '저장';
+                }
+
+            } catch (error) {
+                console.error('글쓰기 요청 중 에러 발생:', error);
+                showModal('네트워크 오류', '서버와 통신할 수 없습니다. 연결 상태를 확인해주세요.');
+                submitButton.disabled = false;
+                submitButton.textContent = '저장';
+            }
+        });
+    </script>
+</body>
+</html>

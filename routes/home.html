@@ -231,7 +231,7 @@
                         </div>
                         <div class="mt-4 flex justify-between items-center">
                             <span class="text-lg font-semibold text-[#F59E0B]">🎁 50 P</span>
-                            <button class="bg-[#F59E0B] text-[#1A202C] font-bold py-2 px-4 rounded-lg hover:bg-amber-500 transition-colors duration-200">도전하기</button>
+                            <button onclick="loadQuiz()" class="bg-[#F59E0B] text-[#1A202C] font-bold py-2 px-4 rounded-lg hover:bg-amber-500 transition-colors duration-200">도전하기</button>
                         </div>
                     </div>
                     <div class="bg-[#2D3748] p-6 rounded-lg shadow-lg flex flex-col justify-between hover:scale-105 transition-transform duration-200">
@@ -381,6 +381,160 @@
             document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
             document.getElementById('nav-' + pageId).classList.add('active');
         }
+
+        // --- 전역 변수 ---
+        let currentCorrectAnswer = ''; // 퀴즈의 정답을 저장할 변수
+
+        // --- 챌린지 페이지 전용 함수 ---
+
+        // HTML 특수문자 디코더 (API가 &quot; 같이 보내주는걸 "로 바꿔줌)
+        function decodeHTML(html) {
+            const txt = document.createElement("textarea");
+            txt.innerHTML = html;
+            return txt.value;
+        }
+
+        // O/X 퀴즈 메뉴로 돌아가기
+        function showChallengeMenu() {
+            const menu = document.getElementById('challenge-menu');
+            const quizArea = document.getElementById('quiz-area');
+            if(menu) {
+                menu.classList.remove('hidden');
+            }
+            if(quizArea) {
+                quizArea.classList.add('hidden');
+                quizArea.innerHTML = ''; // 퀴즈 내용 초기화
+            }
+        }
+
+        // 퀴즈 불러오기 (API 연동)
+        async function loadQuiz() {
+            console.log("퀴즈 불러오기 시작");
+            // '도전하기' 버튼 비활성화 (연속 클릭 방지)
+            // const quizButton = document.querySelector('#challenge-menu button[onclick="loadQuiz()"]');
+            // if (quizButton) quizButton.disabled = true; // 쿨다운 로직 변경으로 일단 제거
+
+            const menu = document.getElementById('challenge-menu');
+            const quizArea = document.getElementById('quiz-area');
+
+            if(!menu || !quizArea) return;
+
+            menu.classList.add('hidden');
+            quizArea.classList.remove('hidden');
+            quizArea.innerHTML = `<p class="text-white text-center text-lg">새로운 퀴즈를 불러오는 중...</p>`;
+
+            try {
+                // OTDB API 호출: 일반 상식(category=9), OX퀴즈(type=boolean) 1문제
+                const response = await fetch('https://opentdb.com/api.php?amount=1&category=9&type=boolean');
+                
+                if (!response.ok) {
+                    // 429 에러(Too Many Requests)를 위한 특별 메시지 처리
+                    if (response.status === 429) {
+                        throw new Error('TooManyRequests');
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+
+                if (data.results.length === 0) {
+                    quizArea.innerHTML = `<p class="text-red-400 text-center">퀴즈를 불러오는데 실패했습니다. <a href="#" onclick="showChallengeMenu()" class="underline">돌아가기</a></p>`;
+                    return;
+                }
+
+                const quiz = data.results[0];
+                currentCorrectAnswer = quiz.correct_answer; // 정답 저장
+
+                // API가 보내준 질문 텍스트를 디코딩
+                const questionText = decodeHTML(quiz.question);
+
+                // 퀴즈 화면 HTML 생성
+                quizArea.innerHTML = `
+                    <div class="bg-[#2D3748] p-8 rounded-lg shadow-lg max-w-2xl mx-auto">
+                        <p class="text-gray-400 text-sm">일반 상식 O/X 퀴즈</p>
+                        <h2 class="text-2xl font-bold text-white text-center my-6 min-h-[100px] flex items-center justify-center">${questionText}</h2>
+                        <div class="flex justify-center space-x-8">
+                            <button id="btn-true" onclick="checkAnswer('True')" class="bg-green-500 text-white font-bold py-4 px-10 rounded-lg text-2xl hover:bg-green-400 transition-colors">O (True)</button>
+                            <button id="btn-false" onclick="checkAnswer('False')" class="bg-red-500 text-white font-bold py-4 px-10 rounded-lg text-2xl hover:bg-red-400 transition-colors">X (False)</button>
+                        </div>
+                        <div id="quiz-feedback" class="text-center text-white text-lg mt-6"></div>
+                        <div class="text-center mt-6">
+                            <button onclick="showChallengeMenu()" class="text-gray-400 hover:text-white underline">챌린지 메뉴로</button>
+                        </div>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error("퀴즈 로딩 실패:", error);
+                // 429 에러 메시지를 사용자에게 친절하게 안내
+                if (error.message === 'TooManyRequests') {
+                     quizArea.innerHTML = `<p class="text-yellow-400 text-center">너무 많은 요청을 보냈습니다.<br>잠시 후 (약 5초) 다시 시도해주세요.<br><br><a href="#" onclick="showChallengeMenu()" class="underline">돌아가기</a></p>`;
+                } else {
+                    quizArea.innerHTML = `<p class="text-red-400 text-center">퀴즈 로딩 중 오류 발생. <br>(${error.message}) <br><a href="#" onclick="showChallengeMenu()" class="underline">돌아가기</a></p>`;
+                }
+                
+                // ★★★ 수정된 부분 ★★★
+                // 로딩 실패 시, 5초 후에 메뉴로 돌아가서 다시 시도할 수 있게 함
+                setTimeout(() => {
+                    showChallengeMenu();
+                }, 5000); // 5초 쿨다운
+            }
+            // 'finally' 블록 제거
+        }
+
+        // 정답 확인
+        function checkAnswer(selectedAnswer) {
+            const feedbackEl = document.getElementById('quiz-feedback');
+            const btnTrue = document.getElementById('btn-true');
+            const btnFalse = document.getElementById('btn-false');
+
+            // 버튼 비활성화
+            if(btnTrue) btnTrue.disabled = true;
+            if(btnFalse) btnFalse.disabled = true;
+
+            let feedbackMessage = '';
+
+            if (selectedAnswer === currentCorrectAnswer) {
+                feedbackMessage = `<span class="text-green-400 font-bold">🎉 정답입니다! +50 P</span>`;
+                // 정답 버튼에 강조 효과
+                if(selectedAnswer === 'True') btnTrue.classList.add('ring-4', 'ring-green-400');
+                if(selectedAnswer === 'False') btnFalse.classList.add('ring-4', 'ring-green-400');
+            } else {
+                feedbackMessage = `<span class="text-red-400 font-bold">😥 오답입니다. (정답: ${currentCorrectAnswer})</span>`;
+                // 오답 버튼에 효과
+                if(selectedAnswer === 'True') btnTrue.classList.add('ring-4', 'ring-red-500');
+                if(selectedAnswer === 'False') btnFalse.classList.add('ring-4', 'ring-red-500');
+            }
+
+            // --- ★★★ 여기가 핵심 수정 부분입니다 ★★★ ---
+
+            // 1. 피드백 메시지 표시 (다음 문제 버튼 없음)
+            feedbackEl.innerHTML = feedbackMessage;
+
+            // 2. 카운트다운 메시지를 추가할 <p> 태그 생성
+            const timerEl = document.createElement('p');
+            timerEl.id = 'next-quiz-timer';
+            timerEl.className = 'text-yellow-400 mt-4';
+            let seconds = 3; // API 쿨다운 5초
+            timerEl.textContent = `${seconds}초 후 다음 문제로 넘어갑니다...`;
+            feedbackEl.appendChild(timerEl);
+
+            // 3. 1초마다 카운트다운 업데이트
+            const interval = setInterval(() => {
+                seconds--;
+                if (seconds > 0) {
+                    timerEl.textContent = `${seconds}초 후 다음 문제로 넘어갑니다...`;
+                } else {
+                    clearInterval(interval); // 0초가 되면 카운트다운 중지
+                }
+            }, 1000);
+
+            // 4. 5초 후에 'loadQuiz' 함수를 자동으로 호출
+            setTimeout(() => {
+                loadQuiz();
+            }, 5000);
+        }
+
     </script>
 </body>
 </html>
