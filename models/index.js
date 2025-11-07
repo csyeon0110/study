@@ -8,11 +8,35 @@ const User = require('./user');
 const Log = require('./log'); 
 
 const db = {};
-// Sequelize 인스턴스를 생성하고 연결합니다.
+/*// Sequelize 인스턴스를 생성하고 연결합니다.
 const sequelize = new Sequelize(
   config.database, config.username, config.password, config,
 );
+*/
 
+// ** 수정 ** sequelize 인스턴스 생성 - 환경에 따라 다르게 설정
+let sequelize;
+
+if (env === 'production') {
+  // [1] Production 환경: Render의 DATABASE_URL 환경 변수를 사용합니다.
+  sequelize = new Sequelize(
+    process.env.DATABASE_URL, {
+      dialect: 'postgres', // PostgreSQL 명시
+      dialectOptions: {
+        // Render DB 연결을 위해 SSL 옵션 필수 설정
+        ssl: {
+          require: true, 
+          rejectUnauthorized: false
+        }
+      },
+      // 기타 필요한 production 옵션 (예: logging: false)
+  });
+} else {
+  // [2] Development/Test 환경: config.json의 개별 설정을 사용합니다.
+  sequelize = new Sequelize(
+    config.database, config.username, config.password, config,
+  );
+}
 db.sequelize = sequelize;
 // db 객체에 모델들을 연결합니다.
 db.User = User;
