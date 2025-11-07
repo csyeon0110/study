@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테마 상점 - {{ nickname }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- ⭐⭐ CSS 파일 연결: themePath 변수를 사용합니다. ⭐⭐ -->
+    <link rel="stylesheet" href="{{ themePath }}">
+    
+    <style>
+        /* CSS 애니메이션 추가: 버튼 클릭 시 효과 */
+        .btn-theme-action:active {
+            transform: scale(0.98);
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) inset;
+        }
+    </style>
+</head>
+<body class="p-8 flex justify-center">
+
+    <main class="container">
+        
+        <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
+            <a href="/" class="text-[#543b2f] hover:text-[#543b2f]">HOME</a>
+            <a href="/feed" class="text-[#543b2f] hover:text-[#543b2f]">FEED</a>
+            <a href="/logs" class="text-[#543b2f] hover:text-[#543b2f]">LOGS</a>
+            <a href="/shop" class="text-[#543b2f] font-bold hover:text-[#543b2f]">SHOP</a>
+            <a href="/challenge" class="text-[#543b2f] hover:text-[#543b2f]">CHALLENGE</a>
+            <a href="/logout" class="text-red-700 hover:text-red-800">LOGOUT</a>
+        </nav>
+
+        <header class="mb-10 text-[#543b2f] border-b pb-5">
+            <h1 class="text-5xl font-extrabold mb-3">테마 상점</h1>
+            <p class="text-xl text-gray-600">보유 포인트 : {{ point }}P</p>
+        </header>
+
+        <!-- 테마 목록 (Nunjucks 반복문으로 동적 생성) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            {% for theme in shopThemes %}
+            <div class="journal-box p-6 rounded-xl text-center">
+                <h2 class="text-2xl font-bold text-[#543b2f] mb-2">{{ theme.display_name }}</h2>
+                <p class="text-sm text-gray-500 mb-4">{{ theme.description }}</p>
+                
+                <!-- 테마 미리보기 (인라인 스타일 사용) -->
+                <div class="h-24 rounded-lg mb-4" 
+                     style="background-color: {{ theme.bg_preview }}; border: 2px solid {{ theme.border_preview }};">
+                </div>
+                
+                <!-- 버튼 상태 로직 -->
+                {% set btn_text = '구매 (' + theme.price + ' P)' %}
+                {% set btn_class = 'bg-[#a07f60] hover:bg-[#7c5d43] text-white' %}
+                {% set btn_disabled = false %}
+                {% set btn_action = 'buyTheme(\'' + theme.name + '\', ' + theme.price + ')' %}
+
+                {% if theme.status.active %}
+                    {% set btn_text = '사용 중' %}
+                    {% set btn_class = 'bg-gray-500 cursor-not-allowed' %}
+                    {% set btn_disabled = true %}
+                    {% set btn_action = null %}
+                {% elif theme.status.purchased %}
+                    {% set btn_text = '적용하기 (구매 완료)' %}
+                    {% set btn_class = 'bg-cyan-600 hover:bg-cyan-700 text-white' %} 
+                    {% set btn_action = 'buyTheme(\'' + theme.name + '\', 0)' %}
+                {% elif theme.price === 0 %}
+                    {% set btn_text = '적용하기 (무료)' %}
+                    {% set btn_class = 'bg-cyan-600 hover:bg-cyan-700 text-white' %}
+                {% endif %}
+
+                <!-- 버튼 렌더링 -->
+                <button 
+                    onclick="{% if btn_action %}{{ btn_action }}{% else %}void(0){% endif %}" 
+                    class="w-full px-4 py-2 text-white font-semibold rounded-lg transition duration-200 btn-theme-action {{ btn_class }}"
+                    {% if btn_disabled %} disabled {% endif %}
+                >
+                    {{ btn_text }}
+                </button>
+            </div>
+            {% endfor %}
+            
+        </div>
+        
+        <!-- ⭐⭐ 숨겨진 데이터 요소 추가: JS가 안전하게 포인트 값을 읽도록 함 ⭐⭐ -->
+        <div id="pointData" data-point="{{ point }}" style="display:none;"></div>
+
+
+        <!-- 커스텀 메시지 모달 (기존 코드 유지) -->
+        <div id="messageModal" class="modal hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl max-w-sm w-full transform scale-100 opacity-100" id="modalContent">
+                <h3 class="text-xl font-bold text-[#543b2f] mb-4" id="modalTitle">알림</h3>
+                <p class="text-gray-700 mb-6" id="modalText"></p>
+                <div class="flex justify-end">
+                    <button onclick="closeModal()" class="bg-[#7c5d43] hover:bg-[#543b2f] text-white font-semibold py-2 px-4 rounded-lg transition duration-200">
+                        확인
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <script>
+        // ⭐ JS 변수를 안전하게 DOM에서 읽어옵니다. ⭐
+        const pointDataElement = document.getElementById('pointData');
+        const currentPointValue = parseInt(pointDataElement.dataset.point, 10);
+        
+        // --- 유틸리티: 메시지 모달 ---
+        const messageModal = document.getElementById('messageModal');
+        const modalContent = document.getElementById('modalContent');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalText = document.getElementById('modalText');
+        let redirectTimer = null;
+
+        function showModal(title, message, redirectPath = null) {
+            if (redirectTimer) clearTimeout(redirectTimer);
+            
+            modalTitle.textContent = title;
+            modalText.textContent = message;
+            messageModal.classList.remove('hidden');
+            
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            if (redirectPath) {
+                redirectTimer = setTimeout(() => {
+                    window.location.href = redirectPath; 
+                }, 1000); // 1초 후 이동
+            }
+        }
+
+        function closeModal() {
+            modalContent.classList.add('scale-95', 'opacity-0');
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            
+            setTimeout(() => {
+                messageModal.classList.add('hidden');
+            }, 300);
+
+            if (redirectTimer) clearTimeout(redirectTimer);
+        }
+
+        async function buyTheme(themeName, themePrice) {
+            
+            // ⭐ JS 변수가 안전하게 로드되었으므로 여기서 포인트 체크를 수행합니다. ⭐
+            if (themePrice > 0 && currentPointValue < themePrice) {
+                showModal('구매 실패', '보유한 포인트가 부족합니다.');
+                return;
+            }
+            
+            // 구매 API 호출 (구매는 buy-theme, 적용은 set-theme)
+            // price가 0보다 크면 구매(차감), 0이면 적용(무료)
+            const apiEndpoint = themePrice > 0 ? '/api/shop/use-item' : '/api/set-theme';
+
+            try {
+                // API 호출 시 서버가 요구하는 itemName 키로 전송
+                const response = await fetch(apiEndpoint, { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ itemName: themeName, themePrice: themePrice })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showModal('성공', result.message || '테마가 적용되었습니다. 페이지를 새로고침합니다.', '/shop');
+                } else {
+                    showModal('실패', result.message || '테마 처리 중 오류 발생');
+                }
+            } catch (error) {
+                console.error(error);
+                showModal('통신 오류', '서버와의 통신 중 문제가 발생했습니다.');
+            }
+        }
+    </script>
+</body>
+</html>

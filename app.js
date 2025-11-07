@@ -54,10 +54,13 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     secret: process.env.SESSION_SECRET,
-    cookie: { httpOnly: true, secure: false },
+    cookie: { 
+        httpOnly: true, 
+        secure: false, 
+        sameSite: 'lax',
+        maxAge: 60 * 1000 * 30 // 30분으로 설정
+    },
     name: 'session-cookie',
-    sameSite: 'lax',
-    maxAge : 60*1000*30,
 }));
 
 
@@ -167,9 +170,8 @@ app.post('/api/login', async (req, res) => {
         if (!isMatch) { return res.status(400).json({ message: '비밀번호가 일치하지 않습니다.' }); }
 
         req.session.userId = user.id; 
-        //const token = jwt.sign({ userId: user.id }, 'MySecretKeyForToken', { expiresIn: '5s' });
         
-        res.status(200).json({ message: '로그인 성공!' });//, token: token
+        res.status(200).json({ message: '로그인 성공!' });
     } catch (error) {
         res.status(500).json({ message: '서버 에러가 발생했습니다.' });
     }
@@ -179,7 +181,7 @@ app.post('/api/login', async (req, res) => {
 // 3. 로그 저장 및 포인트 지급 API
 app.post('/api/log', checkAuthApi, async (req, res) => {
     console.log("[POST /api/log]");
-    const { title, content } = req.body;
+    const { title, content, is_public, tag } = req.body; 
     const user = req.user; 
 
     if (!title || !content) {
@@ -202,9 +204,12 @@ app.post('/api/log', checkAuthApi, async (req, res) => {
             console.log(`[포인트 지급] User ${user.id}에게 ${POINT_AMOUNT}점 지급.`);
         }
 
+        // ⭐ 로그 기록 저장 시 is_public과 tag 저장 ⭐
         await Log.create({
             title: title,
             content: content,
+            is_public: is_public === 'true', // 문자열 'true'를 boolean으로 변환
+            tag: tag || null,
             UserId: user.id,
         });
 
@@ -367,6 +372,104 @@ app.post('/api/profile', checkAuthApi, upload.single('img_file'), async (req, re
             return res.status(409).json({ message: '이미 사용 중인 닉네임 또는 이메일입니다.' });
         }
         res.status(500).json({ message: '개인정보 수정 중 서버 오류가 발생했습니다.' });
+    }
+});
+
+
+// 8. POST /api/set-theme: 사용자 테마 업데이트 API
+app.post('/api/set-theme', checkAuthApi, async (req, res) => {
+    console.log("[POST /api/set-theme]");
+    try {
+        // ⭐ 오류 지점 수정: themeName 대신 itemName으로 통일
+        const { itemName } = req.body; 
+
+        if (!itemName) {
+            return res.status(400).json({ message: '테마 이름이 누락되었습니다.' }); // ⭐️ 이 오류 발생 ⭐️
+        }
+        
+        await User.update({
+            theme: itemName // DB 필드 업데이트
+        }, {
+            where: { id: req.user.id }
+        });
+
+        res.status(200).json({ message: `테마가 ${itemName}로 변경되었습니다.` });
+
+    } catch (error) {
+        console.error('테마 설정 중 에러 발생:', error);
+        res.status(500).json({ message: '테마 설정 중 서버 오류가 발생했습니다.' });
+    }
+});
+
+
+// 9. POST /api/shop/use-item: 테마 구매 또는 적용 처리 API (트랜잭션 포함)
+app.post('/api/shop/use-item', checkAuthApi, async (req, res) => {
+    console.log("[POST /api/shop/use-item] - 테마 구매/적용 요청 수신");
+    const transaction = await sequelize.transaction(); // 트랜잭션 시작
+    try {
+        const user = req.user; 
+        const { itemName } = req.body; // 클라이언트에서 'itemName'으로 보냄
+        
+        if (!itemName) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: '구매/적용할 아이템 이름이 누락되었습니다.' });
+        }
+
+        const item = await Item.findOne({ where: { name: itemName }, transaction });
+        if (!item) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, message: '존재하지 않는 테마입니다.' });
+        }
+
+        const itemPrice = item.price;
+        const isPurchased = await user.hasItem(item, { transaction });
+        
+        let message = '';
+        
+        // 1. 미구매 상태 (구매 로직)
+        if (!isPurchased && itemPrice > 0) {
+            if (user.point < itemPrice) {
+                await transaction.rollback();
+                return res.status(400).json({ success: false, message: `포인트가 부족합니다. (${item.price}P 필요)` });
+            }
+
+            // 포인트 차감 및 구매 기록 생성
+            const newPoint = user.point - itemPrice;
+            await user.update({ point: newPoint }, { transaction });
+            await user.addItem(item, { transaction }); // user_items에 기록
+            
+            message = `${item.description.split(' : ')[0]} 테마를 구매하고 적용했습니다.`;
+
+        } else if (itemPrice === 0 && !isPurchased) {
+             // 2. 무료 테마 (Diary) 적용 로직 (DB에 기록은 남기지 않음)
+             message = '기본 테마가 적용되었습니다.';
+        } else if (user.theme === itemName) {
+             // 3. 이미 사용 중
+             await transaction.rollback();
+             return res.status(200).json({ success: true, message: '이미 해당 테마를 사용 중입니다.' });
+        } else {
+             // 4. 구매 완료 후 적용만 하는 상태 (themePrice === 0으로 클라이언트가 요청)
+             message = `${item.description.split(' : ')[0]} 테마가 적용되었습니다.`;
+        }
+        
+        // 5. 테마 적용 (theme 컬럼 업데이트) 
+        await user.update({ theme: itemName }, { transaction });
+        
+        await transaction.commit(); 
+        
+        const updatedUser = await User.findByPk(user.id);
+
+        res.status(200).json({ 
+            success: true, 
+            message: message, 
+            currentTheme: itemName,
+            newPoint: updatedUser.point 
+        });
+
+    } catch (error) {
+        await transaction.rollback(); 
+        console.error('테마 구매/사용 트랜잭션 오류:', error);
+        res.status(500).json({ success: false, message: '아이템 사용/구매 중 서버 오류가 발생했습니다.' });
     }
 });
 

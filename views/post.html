@@ -5,37 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ nickname }} 새 기록 작성</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
-        body {
-            font-family: 'Nanum Myeongjo', serif;
-            background-color: #fcf8f0; /* 밝은 종이색 */
-            color: #333;
-        }
-        .container { max-width: 800px; }
-        .journal-form-bg {
-            background-color: #ffffff;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-        /* 입력 필드 디자인 (종이 느낌) */
-        input[type="text"], textarea {
-            border: 1px solid #e0e0e0;
-            transition: border-color 0.2s;
-        }
-        input[type="text"]:focus, textarea:focus {
-            border-color: #a07f60;
-            outline: none;
-        }
-    </style>
+    <!-- ⭐⭐ CSS 파일 연결: themePath 변수를 사용합니다. ⭐⭐ -->
+    <link rel="stylesheet" href="{{ themePath }}">
 </head>
 <body class="p-8 flex justify-center">
     <div class="container">
         <!-- 네비게이션 -->
         <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
-            <a href="/" class="text-[#7c5d43] hover:text-[#a07f60]">HOME</a>
-            <a href="/logs" class="text-[#7c5d43] hover:text-[#a07f60]">LOGS</a>
-            <a href="/challenge" class="text-[#7c5d43] hover:text-[#a07f60]">CHALLENGE</a>
-            <a href="/logout" class="text-[#c75e5e] hover:text-[#e07f7f]">LOGOUT</a>
+            <a href="/" class="text-[#543b2f] hover:text-[#543b2f]">HOME</a>
+            <a href="/feed" class="text-[#543b2f] hover:text-[#543b2f]">FEED</a>
+            <a href="/logs" class="text-[#543b2f] font-bold hover:text-[#543b2f]">LOGS</a>
+            <a href="/shop" class="text-[#543b2f] hover:text-[#543b2f]">SHOP</a>
+            <a href="/challenge" class="text-[#543b2f] hover:text-[#543b2f]">CHALLENGE</a>
+            <a href="/logout" class="text-red-700 hover:text-red-800">LOGOUT</a>
         </nav>
 
         <header class="mb-10 text-[#543b2f] border-b pb-5">

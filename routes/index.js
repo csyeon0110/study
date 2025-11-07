@@ -1,33 +1,41 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { User, Log } = require('../models'); // User와 Log 모델을 불러옵니다.
+// ⭐ Item 모델까지 모두 불러옵니다. Op를 위해 Sequelize도 가져옵니다.
+const { User, Log, Sequelize, Op, Item, sequelize } = require('../models'); 
+const moment = require('moment'); // Feed API에서 날짜 포맷팅을 위해 추가
+
+// ⭐⭐ 상점 데이터 정의 (DB 키워드와 미리보기 정보) ⭐⭐
+// 이 데이터는 shop.html에서 버튼 상태와 미리보기를 렌더링하는 데 사용됩니다.
+const THEMES = [
+    { name: 'diary', type: 'theme', price: 0, description: '종이 질감 : 기본 테마', display_name: '일기장', bg_preview: '#fcf8f0', border_preview: '#a07f60', theme_id: 'diary' },
+    { name: 'dev', type: 'theme', price: 100, description: '어두운 배경 & 청록색 네온 : 코딩 컨셉 테마', display_name: '개발자의 밤', bg_preview: '#1e1e1e', border_preview: '#00bcd4', theme_id: 'developer' },
+    { name: 'pastel', type: 'theme', price: 150, description: '부드러운 파스텔 톤 : 귀여운 테마', display_name: '파스텔 구름', bg_preview: '#e6e6fa', border_preview: '#a8c0ff', theme_id: 'pastel' },
+    { name: 'autumn', type: 'theme', price: 150, description: '차분한 황토색 & 짙은 갈색 : 가을 감성 테마', display_name: '가을의 사색', bg_preview: '#f7e7c6', border_preview: '#9c5922', theme_id: 'autumn' },
+    { name: 'forest', type: 'theme', price: 200, description: '민트 & 나무색 : 상쾌한 숲 테마', display_name: '상쾌한 숲', bg_preview: '#e0f8f7', border_preview: '#00a896', theme_id: 'mint' },
+    { name: 'game', type: 'theme', price: 200, description: '네온 핑크 & 형광 녹색 : 레트로 아케이드 테마', display_name: '레트로 아케이드', bg_preview: '#000000', border_preview: '#ff00ff', theme_id: 'retro' },
+];
+
 
 // ⭐⭐⭐ checkAuth 미들웨어 정의 ⭐⭐⭐
-// 모든 보호된 라우트(HOME, LOGS, POST 등)에서 사용됩니다.
 const checkAuth = async (req, res, next) => {
-    // 1. 세션에 userId가 없으면 로그인 페이지로 리디렉션
     if (!req.session.userId) {
-        // login.html은 정적 파일이므로 '/login.html'로 리디렉션
         return res.redirect('/login.html'); 
     }
     
     try {
-        // 2. 세션 ID로 사용자 정보를 DB에서 조회
         const user = await User.findByPk(req.session.userId);
         
         if (!user) {
-            // 사용자가 DB에 없다면 세션을 파괴하고 로그인 페이지로 보냄
             req.session.destroy();
             return res.redirect('/login.html');
         }
         
-        // 3. 요청 객체에 사용자 정보를 추가 (라우트에서 req.user로 접근 가능)
         req.user = user; 
-        next(); // 다음 라우트 핸들러로 이동
+        next(); 
     } catch (error) {
         console.error("인증 중 오류 발생:", error);
-        next(error); // 에러 처리 미들웨어로 전달
+        next(error); 
     }
 };
 
@@ -39,63 +47,50 @@ const checkAuth = async (req, res, next) => {
 // [A] GET /: 메인 페이지
 router.get('/', checkAuth, async (req, res, next) => {
     try {
-        // D-DAY 계산 로직
+        // D-DAY, 챌린지 상태, recentLogs 계산 로직 (생략)
         let dDay = null; 
         let goalEvent = req.user.goal_event || '목표를 설정해보세요';
-        let goalDateFormatted = null; // 클라이언트 JS로 보낼 포맷팅된 날짜 (YYYY-MM-DD)
+        let goalDateFormatted = null; 
 
-        
-        if (req.user.dday) { // user.dday가 목표 날짜임
+        if (req.user.dday) { 
             const today = new Date();
             const goalDate = new Date(req.user.dday);
             
-            // 목표 날짜를 YYYY-MM-DD 형식으로 포맷팅 (클라이언트 input[type=date]용)
             const yyyy = goalDate.getFullYear();
             const mm = String(goalDate.getMonth() + 1).padStart(2, '0');
             const dd = String(goalDate.getDate()).padStart(2, '0');
             goalDateFormatted = `${yyyy}-${mm}-${dd}`;
             
-            // D-Day 계산을 위해 날짜 부분만 비교
             const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             const goalDateOnly = new Date(goalDate.getFullYear(), goalDate.getMonth(), goalDate.getDate());
             
             const timeDiff = goalDateOnly.getTime() - todayDateOnly.getTime();
             dDay = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
             
-            /*if (!req.user.goal_event) {
+            if (!req.user.goal_event) {
                 goalEvent = '목표를 설정해보세요';
-            }*/
+            }
         } else {
              goalEvent = '목표를 설정해보세요';
         }
         
-        // ⭐ 오류 해결을 위한 변수 추가 (goalEventForInput) ⭐
-        let goalEventForInput = (goalEvent && goalEvent !== '목표를 설정해보세요') 
-                        ? goalEvent 
-                        : '';
+        let goalEventForInput = (goalEvent && goalEvent !== '목표를 설정해보세요') ? goalEvent : '';
+        const today = new Date().toDateString();
+        const isPostCompleted = req.user.last_post && new Date(req.user.last_post).toDateString() === today;
+        const isGameCompleted = req.user.last_game && new Date(req.user.last_game).toDateString() === today;
 
-
-        // ⭐ 일일 챌린지 상태 확인 ⭐
-        const today = new Date().toDateString(); // 오늘 날짜 문자열 ('Thu Nov 06 2025')
-        
-        // last_post와 오늘 날짜 비교
-        const isPostCompleted = req.user.last_post && 
-                                new Date(req.user.last_post).toDateString() === today;
-
-        // last_game과 오늘 날짜 비교
-        const isGameCompleted = req.user.last_game && 
-                                new Date(req.user.last_game).toDateString() === today;
-
-
-        // 최신 로그 3개만 불러오기 (메인 페이지용)
         const recentLogs = await Log.findAll({
             where: { UserId: req.user.id },
             order: [['created_at', 'DESC']], 
             limit: 3
         });
         
+        // 테마 경로 계산
+        const themeName = req.user.theme || 'diary'; 
+        const themePath = `/css/${themeName}.css`; 
+
+
         res.render('index', { // views/index.html 렌더링
-            // ... 기존 데이터 전달 ...
             nickname: req.user.nickname,
             name: req.user.name || '이름 없음', 
             email: req.user.email,
@@ -104,13 +99,13 @@ router.get('/', checkAuth, async (req, res, next) => {
             point: req.user.point,
             dDay: dDay,
             goalEvent: goalEvent, 
-            goalDateFormatted: goalDateFormatted, // 포맷팅된 날짜 전달
-            goalEventForInput: goalEventForInput, // ⭐ 오류 해결 변수 전달 ⭐
+            goalDateFormatted: goalDateFormatted, 
+            goalEventForInput: goalEventForInput, 
             recentLogs: recentLogs,
 
-            // 챌린지 상태 데이터 전달
             isPostCompleted: isPostCompleted,
             isGameCompleted: isGameCompleted,
+            themePath: themePath 
         });
     } catch (error) {
         console.error(error);
@@ -119,17 +114,71 @@ router.get('/', checkAuth, async (req, res, next) => {
 });
 
 
-// [B] GET /logs: 로그 목록 페이지
+// [B] GET /feed: 공개 피드 페이지
+router.get('/feed', checkAuth, (req, res) => {
+    const themeName = req.user.theme || 'diary'; 
+    const themePath = `/css/${themeName}.css`; 
+    res.render('feed', { nickname: req.user.nickname, themePath: themePath });
+});
+
+
+// [C] GET /api/feed: 공개 피드 API (데이터 조회) (생략)
+router.get('/api/feed', checkAuth, async (req, res, next) => {
+    try {
+        const { tag, nickname } = req.query; 
+        const whereClause = { is_public: true }; 
+        if (tag) { whereClause.tag = tag; }
+
+        let userWhereClause = {};
+        if (nickname) {
+            userWhereClause.nickname = { [Op.like]: `%${nickname}%` };
+        }
+        
+        const logs = await Log.findAll({
+            where: whereClause,
+            order: [['created_at', 'DESC']],
+            include: [{
+                model: User,
+                attributes: ['nickname'], 
+                where: userWhereClause,
+                required: true 
+            }]
+        });
+
+        const formattedLogs = logs.map(log => ({
+            id: log.id,
+            title: log.title,
+            content: log.content,
+            tag: log.tag,
+            created_at: moment(log.created_at).format('YYYY.MM.DD HH:mm'), 
+            authorNickname: log.User.nickname, 
+        }));
+
+        res.status(200).json({ logs: formattedLogs });
+
+    } catch (error) {
+        console.error('Feed API 오류:', error);
+        next(error);
+    }
+});
+
+
+// [D] GET /logs: 로그 목록 페이지
 router.get('/logs', checkAuth, async (req, res, next) => {
     try {
         const logs = await Log.findAll({
             where: { UserId: req.user.id },
-            order: [['created_at', 'DESC']] // 최신 기록부터 보여주기
+            order: [['created_at', 'DESC']]
         });
+
+        // 테마 경로 전달 
+        const themeName = req.user.theme || 'diary'; 
+        const themePath = `/css/${themeName}.css`; 
 
         res.render('logs', { 
             nickname: req.user.nickname,
-            logs: logs // 템플릿으로 로그 목록 전달
+            logs: logs,
+            themePath: themePath
         });
     } catch (error) {
         console.error('로그 조회 중 오류:', error);
@@ -138,32 +187,169 @@ router.get('/logs', checkAuth, async (req, res, next) => {
 });
 
 
-// [C] GET /post: 글쓰기 페이지
+// [E] GET /post: 글쓰기 페이지
 router.get('/post', checkAuth, (req, res) => {
-    res.render('post', { nickname: req.user.nickname });
+    const themeName = req.user.theme || 'diary'; 
+    const themePath = `/css/${themeName}.css`; 
+    res.render('post', { nickname: req.user.nickname, themePath: themePath });
 });
 
 
-// [D] GET /challenge: 챌린지 페이지 (임시 렌더링)
+// ⭐⭐ [NEW] GET /shop: 테마 상점 페이지 ⭐⭐
+router.get('/shop', checkAuth, async (req, res) => { 
+    try {
+        const themeName = req.user.theme || 'diary'; 
+        const themePath = `/css/${themeName}.css`; 
+
+        // 1. 사용자의 구매 내역 (Item 모델과 관계 설정을 사용)
+        const userItems = await req.user.getItems(); 
+        const purchasedItemNames = userItems.map(item => item.name);
+        
+        // 2. 모든 테마 아이템 목록 조회 (DB의 Item 테이블에서 조회)
+        const items = await Item.findAll({ where: { type: 'theme' }, order: [['price', 'ASC']] });
+        
+        // 3. 상점 테마 목록에 구매/사용 상태 추가
+        const shopThemes = items.map(item => { 
+            const status = {};
+            const isPurchased = purchasedItemNames.includes(item.name);
+            
+            // ⭐⭐⭐ 미리보기 데이터 정의 (DB의 name과 일치하도록) ⭐⭐⭐
+            let themeData = {
+                'diary': { display_name: '일기장', bg_preview: '#fcf8f0', border_preview: '#a07f60' },
+                'developer': { display_name: '개발자의 밤', bg_preview: '#1e1e1e', border_preview: '#00bcd4' },
+                'pastel': { display_name: '파스텔 구름', bg_preview: '#e6e6fa', border_preview: '#a8c0ff' },
+                'autumn': { display_name: '가을의 사색', bg_preview: '#f7e7c6', border_preview: '#9c5922' },
+                'mint': { display_name: '상쾌한 숲', bg_preview: '#e0f8f7', border_preview: '#00a896' },
+                'retro': { display_name: '레트로 아케이드', bg_preview: '#000000', border_preview: '#ff00ff' },
+            }[item.name] || { display_name: item.name, bg_preview: '#ffffff', border_preview: '#333' }; // DB에 없는 테마 처리
+
+            
+            // 4. 상태 플래그 설정
+            if (req.user.theme === item.name) {
+                status.active = true;
+                status.purchased = true;
+            } else {
+                status.active = false;
+                status.purchased = isPurchased;
+            }
+            
+            return {
+                ...item.toJSON(), 
+                display_name: themeData.display_name,
+                bg_preview: themeData.bg_preview,
+                border_preview: themeData.border_preview,
+                status: status
+            };
+        });
+
+        res.render('shop', { 
+            nickname: req.user.nickname,
+            point: req.user.point, 
+            themePath: themePath,
+            shopThemes: shopThemes // shopThemes 배열 전달
+        });
+
+    } catch (error) {
+        console.error('상점 페이지 로드 중 에러 발생:', error);
+        next(error);
+    }
+});
+
+// 이 API에서 트랜잭션을 사용하여 포인트 차감, 구매 기록 생성, 테마 적용을 동시에 처리합니다.
+router.post('/api/shop/use-item', checkAuth, async (req, res, next) => {
+    const { itemName } = req.body;
+    const userId = req.user.id;
+    // 트랜잭션 시작! (Sequelize.transaction() 대신 sequelize.transaction() 사용)
+    const t = await sequelize.transaction(); 
+
+    try {
+        const item = await Item.findOne({ where: { name: itemName }, transaction: t }); // 트랜잭션 적용
+        if (!item) {
+            await t.rollback();
+            return res.status(404).json({ success: false, message: '아이템을 찾을 수 없습니다.' });
+        }
+
+        const user = req.user;
+        const userItems = await user.getItems({ transaction: t });
+        const isPurchased = userItems.some(userItem => userItem.name === itemName);
+        
+        let message = '';
+        const isDefaultTheme = (itemName === 'diary');
+
+        if (isDefaultTheme) {
+             message = '기본 테마가 적용되었습니다.';
+        } else if (!isPurchased) {
+            // 1. 미구매 상태: 구매 및 포인트 차감
+            if (user.point < item.price) {
+                await t.rollback();
+                return res.status(400).json({ success: false, message: `포인트가 부족합니다. (${item.price}P 필요)` });
+            }
+
+            // 2. 포인트 차감 
+            const newPoint = user.point - item.price;
+            await user.update({ point: newPoint }, { transaction: t });
+
+            // 3. 구매 기록 생성 
+            await user.addItem(item, { transaction: t }); // user_items에 기록
+            
+            message = `${item.description.split(' : ')[0]} 테마를 구매하고 적용했습니다.`;
+
+        } else {
+            // 4. 이미 구매한 상태: 사용만 처리 (포인트 차감 없음)
+            message = `${item.description.split(' : ')[0]} 테마가 적용되었습니다.`;
+        }
+        
+        // 5. 테마 적용 
+        await user.update({ theme: itemName }, { transaction: t });
+
+        await t.commit(); // 모든 작업 성공!
+        
+        const updatedUser = await User.findByPk(userId);
+
+        res.status(200).json({ 
+            success: true, 
+            message: message, 
+            currentTheme: itemName,
+            newPoint: updatedUser.point 
+        });
+
+    } catch (error) {
+        await t.rollback(); 
+        console.error('테마 구매/사용 트랜잭션 오류:', error);
+        res.status(500).json({ success: false, message: '아이템 사용/구매 중 서버 오류가 발생했습니다.' });
+        next(error);
+    }
+});
+
+
+// [F] GET /challenge: 챌린지 페이지 (고정 다크 테마)
 router.get('/challenge', checkAuth, (req, res) => {
-    res.render('challenge', { nickname: req.user.nickname, point: req.user.point });
+    // 테마 고정: dark_theme.css
+    const themePath = `/css/dark_theme.css`; 
+    res.render('challenge', { nickname: req.user.nickname, point: req.user.point, themePath: themePath });
 });
 
 
-// [E] GET /ox: OX 퀴즈 페이지
+// [G] GET /ox: OX 퀴즈 페이지 (고정 다크 테마)
 router.get('/ox', checkAuth, (req, res) => {
-    res.render('ox', { nickname: req.user.nickname });
+    // 테마 고정: dark_theme.css
+    const themePath = `/css/dark_theme.css`; 
+    res.render('ox', { nickname: req.user.nickname, themePath: themePath });
 });
 
 
-// [F] GET /card: 카드 게임 페이지
+// [H] GET /card: 카드 게임 페이지 (고정 다크 테마)
 router.get('/card', checkAuth, (req, res) => {
-    res.render('card', { nickname: req.user.nickname });
+    // 테마 고정: dark_theme.css
+    const themePath = `/css/dark_theme.css`; 
+    res.render('card', { nickname: req.user.nickname, themePath: themePath });
 });
 
 
-// [G] GET /profile: 개인정보 수정 페이지
+// [I] GET /profile: 개인정보 수정 페이지
 router.get('/profile', checkAuth, (req, res) => {
+    const themeName = req.user.theme || 'diary'; 
+    const themePath = `/css/${themeName}.css`; 
     res.render('profile', { 
         nickname: req.user.nickname,
         name: req.user.name || '', 
@@ -171,29 +357,40 @@ router.get('/profile', checkAuth, (req, res) => {
         comment: req.user.comment || '',
         img_url: req.user.img_url,
         point: req.user.point,
+        themePath: themePath
     });
 });
 
 
-// [H] GET /logs/:logId: 특정 기록 상세 페이지
+// [J] GET /logs/:logId: 특정 기록 상세 페이지
+// ⭐⭐ [J] GET /logs/:logId: 특정 기록 상세 페이지 (최종 수정) ⭐⭐
 router.get('/logs/:logId', checkAuth, async (req, res, next) => {
     try {
         const logId = req.params.logId;
-        
-        const log = await Log.findOne({
+        // const currentUserId = req.user.id; // 사용자 ID 조건 삭제
+
+        // 1. 해당 로그를 ID로만 조회 (공개/비공개 상관없이 접근 허용)
+        let log = await Log.findOne({
             where: {
-                id: logId,
-                UserId: req.user.id
-            }
+                id: logId
+            },
+            // 작성자 닉네임을 가져오기 위해 User 포함 (LEFT JOIN)
+            include: [{ model: User, attributes: ['nickname'] }] 
         });
 
+        // 2. 로그가 없으면 접근 불가
         if (!log) {
             return res.status(404).send('해당 기록을 찾을 수 없습니다.');
         }
 
-        res.render('article', { // views/article.html 템플릿 사용
+        // 3. 렌더링
+        const themeName = req.user.theme || 'diary'; 
+        const themePath = `/css/${themeName}.css`; 
+
+        res.render('article', { 
             nickname: req.user.nickname,
-            log: log.toJSON() 
+            log: log.toJSON(),
+            themePath: themePath
         });
 
     } catch (error) {
@@ -203,9 +400,8 @@ router.get('/logs/:logId', checkAuth, async (req, res, next) => {
 });
 
 
-// [I] GET /logout: 로그아웃 처리
+// [K] GET /logout: 로그아웃 처리
 router.get('/logout', checkAuth, (req, res, next) => {
-    // 세션을 파괴하고 로그인 페이지로 돌려보냅니다.
     req.session.destroy((err) => {
         if (err) {
             console.error(err);
@@ -216,9 +412,56 @@ router.get('/logout', checkAuth, (req, res, next) => {
     });
 });
 
+// ⭐⭐ [J] GET /logs/:logId: 특정 기록 상세 페이지 (최종 수정) ⭐⭐
+router.get('/logs/:logId', checkAuth, async (req, res, next) => {
+    try {
+        const logId = req.params.logId;
+        const currentUserId = req.user.id; // 현재 로그인된 사용자 ID
+
+        // 1. 해당 로그가 '나의' 기록이거나 '공개된' 기록인지 확인하는 통합 쿼리
+        let log = await Log.findOne({
+            where: {
+                id: logId,
+                // ⭐ 핵심 수정: OR 연산자를 사용하여 접근 권한을 확인합니다. ⭐
+                [Op.or]: [
+                    { UserId: currentUserId }, // 1. 내가 작성한 글
+                    { is_public: true }       // 2. 공개된 글
+                ]
+            },
+            // 작성자 닉네임을 가져오기 위해 User 포함
+            include: [{ model: User, attributes: ['nickname'] }] 
+        });
+
+
+        // 2. 로그가 없거나, (다른 사람의) 비공개 글인 경우 접근 불가
+        if (!log) {
+            return res.status(404).send('해당 기록을 찾을 수 없습니다.');
+        }
+
+        // 3. (추가 보안) 남의 글인데 비공개라면 접근 불가
+        // (이 로직은 Op.or 조건에 의해 사실상 필요 없지만, 명확성을 위해 유지)
+        if (log.UserId !== currentUserId && log.is_public !== true) {
+             return res.status(404).send('해당 기록을 찾을 수 없습니다.');
+        }
+
+        // 4. 렌더링
+        const themeName = req.user.theme || 'diary'; 
+        const themePath = `/css/${themeName}.css`; 
+
+        res.render('article', { 
+            nickname: req.user.nickname,
+            log: log.toJSON(),
+            themePath: themePath
+        });
+
+    } catch (error) {
+        console.error('로그 상세 조회 중 오류:', error);
+        next(error);
+    }
+});
+
 
 module.exports = router;
-
 /*
 const express = require('express');
 const router = express.Router();

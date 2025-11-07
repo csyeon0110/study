@@ -80,11 +80,13 @@
 <body class="p-8 flex justify-center items-center min-h-screen">
     <div class="container w-full">
         <!-- 네비게이션 -->
-        <nav class="flex space-x-6 mb-8 border-b-2 border-dashed border-[#ffc107] pb-4">
-            <a href="/" class="text-white hover:text-[#ffc107]">HOME</a>
-            <a href="/logs" class="text-white hover:text-[#ffc107]">LOGS</a>
-            <a href="/challenge" class="accent-text font-bold hover:text-white">CHALLENGE</a>
-            <a href="/logout" class="text-[#c75e5e] hover:text-white">LOGOUT</a>
+        <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
+            <a href="/" class="text-[#543b2f] hover:text-[#543b2f]">HOME</a>
+            <a href="/feed" class="text-[#543b2f] hover:text-[#543b2f]">FEED</a>
+            <a href="/logs" class="text-[#543b2f] hover:text-[#543b2f]">LOGS</a>
+            <a href="/shop" class="text-[#543b2f] hover:text-[#543b2f]">SHOP</a>
+            <a href="/challenge" class="text-[#543b2f] font-bold hover:text-[#543b2f]">CHALLENGE</a>
+            <a href="/logout" class="text-red-700 hover:text-red-800">LOGOUT</a>
         </nav>
 
         <header class="mb-8 text-white">
@@ -124,7 +126,7 @@
 
     <script>
         // --- 게임 설정 ---
-        const GAME_DURATION = 30; // 시간 제한 (초)
+        const GAME_DURATION = 10; // 시간 제한 (초)
         const INITIAL_REVEAL_TIME = 5; // 초기 공개 시간 (초)
         const CARD_COUNT = 10; // 카드 개수 (짝 5개)
         const POINT_PER_MATCH = 10; // 짝당 획득 포인트

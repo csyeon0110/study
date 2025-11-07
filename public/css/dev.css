@@ -1,0 +1,105 @@
+/* 개발자의 밤 테마: 어두운 배경, 청록색 강조 (최종 복구) */
+
+/* 1. 폰트 URL */
+@import url('https://fonts.googleapis.com/css2?family=D2+Coding:wght@400;700&display=swap');
+
+body {
+    font-family: 'D2 Coding', monospace;
+    background-color: #121212; /* 매우 어두운 배경 */
+    color: #e0e0e0; /* 밝은 회색 글자 */
+}
+.container { max-width: 1000px; }
+
+/* ⭐⭐ 1. 모든 카드/박스 스타일 (HOME, LOGS, FEED, PROFILE) ⭐⭐ */
+.journal-box, .log-entry, .article-box {
+    background-color: #1e1e1e !important; /* ⭐ 카드 배경을 어둡게 */
+    box-shadow: 0 1px 5px rgba(0, 255, 255, 0.2); 
+    border-left: 5px solid #00bcd4; /* 청록색 구분선 */
+    color: #e0e0e0; /* 카드 내부 기본 글자색 (밝게) */
+    border-color: #333333; 
+}
+.log-entry { border-bottom: none !important; } 
+
+/* ⭐⭐ 2. FEED 페이지의 필터 박스 (shadow-inner) 다크 모드 적용 ⭐⭐ */
+.shadow-inner {
+    background-color: #1e1e1e !important; /* 카드 배경 */
+    box-shadow: 0 1px 5px rgba(0, 255, 255, 0.2) !important; /* 청록색 네온 그림자 */
+    border-left: 5px solid #00bcd4 !important; /* 청록색 구분선 */
+    border-color: #333333 !important; 
+}
+
+
+/* ⭐⭐ 3. 이미지 크기 고정 (모든 페이지에 적용) ⭐⭐ */
+.profile-img-container {
+    width: 80px;
+    height: 80px;
+    border: 2px solid #00bcd4; /* 청록색 테두리 */
+    overflow: hidden;
+}
+.profile-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ⭐⭐⭐ 4. 색상 오버라이드 및 강조 텍스트 수정 ⭐⭐⭐ */
+
+/* 1. 메인 헤더 및 제목 텍스트 (HOME, LOGS, 나의 프로필 등) */
+.text-\[\#543b2f\] { 
+    color: #e0e0e0 !important; /* 밝은 회색으로 변경 (제목) */
+}
+
+/* 2. D-DAY, 닉네임 강조색, D-27 숫자 등 (청록색 강조) */
+.text-\[\#7c5d43\] { 
+    color: #00bcd4 !important; /* 청록색으로 강조 */
+}
+
+/* 3. 일반 텍스트(로그 내용, 이메일, 코멘트) 가독성 확보 */
+.text-gray-700, .text-gray-600, .text-gray-500, .text-gray-400 { 
+    color: #b0b0b0 !important; /* 중간 밝기의 회색으로 변경 */
+}
+
+/* 4. 버튼/박스 배경색 (청록색으로 덮어씀) */
+.bg-\[\#a07f60\] { background-color: #00bcd4 !important; }
+
+/* 5. 닉네임 강조색 */
+.text-\[\#964B00\] { color: #00bcd4 !important; }
+
+/* 6. 로그아웃 색상 */
+.text-\[\#c75e5e\] { color: #ff5722 !important; } 
+
+/* 7. 링크 기본 색상 */
+a { color: #00bcd4; } 
+a:hover { color: #0089a0; }
+
+/* 8. 피드 태그 필터 버튼 스타일 (border-[#a07f60] 덮어쓰기) */
+.tag-button {
+    border-color: #00bcd4 !important; /* 청록색 테두리 */
+    color: #00bcd4; /* 청록색 텍스트 (기본 상태) */
+}
+
+/* 활성화된(Active) 태그 버튼 스타일 */
+.tag-button.active {
+    background-color: #00bcd4 !important; /* 청록색 배경 */
+    color: #1e1e1e !important; /* 어두운 텍스트 */
+}
+
+/*  9. "자세히 보기" 링크 색상 수정 (text-[#a07f60] 덮어쓰기) */
+.text-\[\#a07f60\] {
+    color: #00bcd4 !important; /* 청록색으로 강제 변경 */
+}
+.hover\:underline:hover {
+    color: #0089a0 !important; /* 호버 시 색상 (선택 사항) */
+    text-decoration: underline;
+}
+
+/* 10. "게임하러 가기" 버튼 배경색 수정 (bg-[#7c5d43] 덮어쓰기) */
+.bg-\[\#7c5d43\] {
+    background-color: #00bcd4 !important; /* 청록색으로 강제 변경 */
+    color: #1e1e1e !important; /* 버튼 위 글자색 (어둡게) */
+}
+
+/* "게임하러 가기" 버튼 호버 색상 (hover:bg-[#543b2f] 덮어쓰기) */
+.hover\:bg-\[\#543b2f\]:hover {
+    background-color: #0089a0 !important; /* 더 어두운 청록색 */
+}

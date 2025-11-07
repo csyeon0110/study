@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 공개 피드 - {{ nickname }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ⭐⭐ CSS 파일 연결: themePath 변수를 사용합니다. ⭐⭐ -->
+    <link rel="stylesheet" href="{{ themePath }}">
+</head>
+<body class="p-8 flex justify-center">
+    <div class="container">
+        <!-- 네비게이션: HOME FEED LOG CHALLENGE LOGOUT 순서로 수정됨 -->
+        <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
+            <a href="/" class="text-[#543b2f] hover:text-[#543b2f]">HOME</a>
+            <a href="/feed" class="text-[#543b2f] font-bold hover:text-[#543b2f]">FEED</a>
+            <a href="/logs" class="text-[#543b2f] hover:text-[#543b2f]">LOGS</a>
+            <a href="/shop" class="text-[#543b2f] hover:text-[#543b2f]">SHOP</a>
+            <a href="/challenge" class="text-[#543b2f] hover:text-[#543b2f]">CHALLENGE</a>
+            <a href="/logout" class="text-red-700 hover:text-red-800">LOGOUT</a>
+        </nav>
+
+        <header class="mb-10 text-[#543b2f] border-b pb-5">
+            <h1 class="text-5xl font-extrabold mb-3">공개 피드</h1>
+            <p class="text-xl text-gray-600">
+                다른 기록자들의 기록을 둘러보세요.
+            </p>
+        </header>
+
+        <!-- 필터 및 검색 영역 -->
+        <div class="mb-8 p-6 bg-white rounded-lg shadow-inner border border-gray-100">
+            <h3 class="text-lg font-bold mb-3 text-[#543b2f]">태그 필터</h3>
+            <div id="tagFilter" class="flex flex-wrap gap-2 mb-4">
+                <button class="tag-button active px-4 py-1 text-sm rounded-full border border-[#a07f60]" data-tag="">전체</button>
+                <button class="tag-button px-4 py-1 text-sm rounded-full border border-[#a07f60]" data-tag="일상/생각">일상/생각</button>
+                <button class="tag-button px-4 py-1 text-sm rounded-full border border-[#a07f60]" data-tag="공부">공부</button>
+                <button class="tag-button px-4 py-1 text-sm rounded-full border border-[#a07f60]" data-tag="취미/문화">취미/문화</button>
+                <button class="tag-button px-4 py-1 text-sm rounded-full border border-[#a07f60]" data-tag="기타">기타</button>
+            </div>
+            
+            <h3 class="text-lg font-bold mb-3 text-[#543b2f] border-t pt-4">사용자 검색</h3>
+            <div class="flex space-x-2">
+                <input type="text" id="searchInput" placeholder="닉네임을 입력하세요..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-inner focus:ring-[#a07f60] focus:border-[#a07f60]">
+                <button id="searchButton" class="px-6 py-2 bg-[#a07f60] text-white rounded-lg hover:bg-[#7c5d43] transition duration-200">
+                    검색
+                </button>
+            </div>
+        </div>
+
+        <!-- 기록 목록 -->
+        <div id="feedList" class="space-y-6">
+            <!-- 로딩 상태 -->
+            <div id="loading" class="text-center py-12 text-[#7c5d43]">
+                <p class="text-lg animate-pulse">피드를 불러오는 중...</p>
+            </div>
+            <!-- 피드 목록이 여기에 로드됩니다 -->
+        </div>
+        
+    </div>
+    
+    <script>
+        // const API_BASE_URL = ''; // ⭐️ API_BASE_URL 변수 제거 ⭐️
+        
+        let currentTag = "";
+        let currentSearch = "";
+
+        const feedList = document.getElementById('feedList');
+        const tagButtons = document.querySelectorAll('#tagFilter .tag-button');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+
+        // --- 유틸리티: HTML 디코딩 ---
+        function htmlDecode(input) {
+            const doc = new DOMParser().parseFromString(input, "text/html");
+            return doc.documentElement.textContent;
+        }
+
+        // --- 피드 렌더링 함수 ---
+        function renderFeed(logs) {
+            feedList.innerHTML = '';
+            if (logs.length === 0) {
+                feedList.innerHTML = `
+                    <div class="text-center py-12 text-gray-500 bg-white rounded-lg shadow-sm">
+                        <p class="text-lg mb-2">아직 공개된 기록이 없습니다.</p>
+                        <p>태그 또는 검색 조건을 변경해보세요.</p>
+                    </div>`;
+                return;
+            }
+
+            logs.forEach(log => {
+                const authorLink = `/user/${log.authorNickname}`; // 사용자 프로필 페이지 링크 (미구현)
+                
+                const logElement = document.createElement('div');
+                logElement.classList.add('log-entry', 'p-6', 'bg-white', 'rounded-lg', 'shadow-sm');
+                logElement.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h2 class="text-2xl font-bold text-[#543b2f]">${htmlDecode(log.title)}</h2>
+                        <span class="text-sm text-gray-400">${log.created_at}</span>
+                    </div>
+                    <p class="text-sm text-[#7c5d43] font-semibold mb-3"># ${htmlDecode(log.tag)}</p>
+                    <p class="text-gray-600 line-clamp-2 mb-4">${htmlDecode(log.content)}</p>
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-bold text-[#964B00]">작성자: ${htmlDecode(log.authorNickname)}</span>
+                        <a href="/logs/${log.id}" class="text-[#a07f60] hover:underline">자세히 보기</a>
+                    </div>
+                `;
+                feedList.appendChild(logElement);
+            });
+        }
+
+        // --- 데이터 가져오기 (메인 함수) ---
+        async function fetchFeed() {
+            feedList.innerHTML = `<div id="loading" class="text-center py-12 text-[#7c5d43]"><p class="text-lg animate-pulse">피드를 불러오는 중...</p></div>`;
+            
+            const params = new URLSearchParams();
+            if (currentTag) params.append('tag', currentTag);
+            if (currentSearch) params.append('nickname', currentSearch);
+            
+            // ⭐️ 수정: 상대 경로(/api/feed)로 시작하도록 API_BASE_URL 제거 ⭐️
+            const url = `/api/feed?${params.toString()}`;
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    // 서버 오류 시, 응답이 JSON이 아닐 수 있으므로 텍스트로 처리
+                    const errorText = await response.text();
+                    console.error("Server Error Response:", errorText);
+                    throw new Error("Failed to fetch feed data. Status: " + response.status);
+                }
+                const data = await response.json();
+                renderFeed(data.logs);
+
+            } catch (error) {
+                console.error("Fetch Feed Error:", error);
+                feedList.innerHTML = `<div class="text-center py-12 text-red-600"><p class="text-lg">피드 로딩 중 오류 발생. (서버 확인 필요)</p></div>`;
+            }
+        }
+
+        // --- 이벤트 핸들러 ---
+        
+        // 1. 태그 클릭 핸들러
+        tagButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tagButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                currentTag = button.dataset.tag;
+                fetchFeed();
+            });
+        });
+
+        // 2. 검색 버튼 핸들러
+        searchButton.addEventListener('click', () => {
+            currentSearch = searchInput.value.trim();
+            fetchFeed();
+        });
+
+        // 3. 페이지 로드 시
+        window.onload = fetchFeed;
+
+    </script>
+</body>
+</html>

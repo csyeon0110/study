@@ -6,6 +6,7 @@ const config = require('../config/config')[env];
 // User와 Log 모델 파일을 불러옵니다.
 const User = require('./user');
 const Log = require('./log'); 
+const Item = require('./item'); 
 
 const db = {};
 /*// Sequelize 인스턴스를 생성하고 연결합니다.
@@ -41,15 +42,18 @@ db.sequelize = sequelize;
 // db 객체에 모델들을 연결합니다.
 db.User = User;
 db.Log = Log; 
+db.Item = Item; // ⭐ Item 모델 DB 객체에 추가
 
 // 1. 모든 모델 초기화 (init): 관계 설정 전에 속성들을 Sequelize에 등록합니다.
 User.init(sequelize);
 Log.init(sequelize); 
+Item.init(sequelize); // ⭐ Item 모델 초기화
 
 // ⭐ 2. 모든 모델 초기화가 끝난 후, associate 호출 (순서 중요!): 
 // 이제 User가 Log를 알고, Log가 User를 알게 됩니다.
 User.associate(db);
 Log.associate(db); 
+Item.associate(db); // ⭐ Item 모델 관계 설정 추가
 
 module.exports = db;
 

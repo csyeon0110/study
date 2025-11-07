@@ -6,7 +6,10 @@
     <!-- Log 데이터가 템플릿 변수 log로 전달됨 -->
     <title>{{ log.title }}의 기록</title> 
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    
+    <!-- ⭐⭐ CSS 파일 연결: themePath 변수를 사용합니다. ⭐⭐ -->
+    <link rel="stylesheet" href="{{ themePath }}">
+    <!--<style>
         /* Nanum Myeongjo 폰트 로드 (일기장 컨셉) */
         @import url('https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap');
         body {
@@ -25,16 +28,18 @@
             /* 들여쓰기 기본값 0으로 설정 */
             text-indent: 0 !important; 
         }
-    </style>
+    </style>-->
 </head>
 <body class="p-8 flex justify-center">
     <div class="container">
         <!-- 네비게이션 -->
         <nav class="flex space-x-6 mb-10 border-b pb-4 border-[#e0e0e0]">
-            <a href="/" class="text-[#7c5d43] hover:text-[#a07f60]">HOME</a>
-            <a href="/logs" class="text-[#7c5d43] font-bold hover:text-[#a07f60]">LOGS</a>
-            <a href="/challenge" class="text-[#7c5d43] hover:text-[#a07f60]">CHALLENGE</a>
-            <a href="/logout" class="text-[#c75e5e] hover:text-[#e07f7f]">LOGOUT</a>
+            <a href="/" class="text-[#543b2f] hover:text-[#543b2f]">HOME</a>
+            <a href="/feed" class="text-[#543b2f] hover:text-[#543b2f]">FEED</a>
+            <a href="/logs" class="text-[#543b2f] font-bold hover:text-[#543b2f]">LOGS</a>
+            <a href="/shop" class="text-[#543b2f] hover:text-[#543b2f]">SHOP</a>
+            <a href="/challenge" class="text-[#543b2f] hover:text-[#543b2f]">CHALLENGE</a>
+            <a href="/logout" class="text-red-700 hover:text-red-800">LOGOUT</a>
         </nav>
 
         <!-- 기록 상세 내용 -->

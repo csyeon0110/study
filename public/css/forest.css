@@ -1,0 +1,54 @@
+/* forest_theme.css (파스텔 숲 컨셉) */
+@import url('https://fonts.googleapis.com/css2?family=Nanum+Barun+Gothic:wght@400;700&display=swap');
+
+body {
+    font-family: 'Nanum Barun Gothic', sans-serif;
+    background-color: #f1f8e9; /* 파스텔 연두색 배경 (매우 밝음) */
+    color: #384d38; /* 짙은 숲 초록색 텍스트 */
+}
+.journal-box {
+    background-color: #ffffff;
+    box-shadow: 0 1px 5px rgba(56, 77, 56, 0.3);
+    border-left: 5px solid #6aa84f; /* 풀잎색 구분선 */
+}
+.profile-img-container {
+    border: 2px solid #6aa84f;
+}
+
+/* ⭐⭐⭐ 포인트 박스 및 버튼 색상 (진한 초록색) ⭐⭐⭐ */
+
+/* 1. MY POINT 배경색 (bg-[#a07f60]를 덮어씀) */
+.bg-\[\#a07f60\] { background-color: #38761d !important; }
+
+/* 2. 개인정보 수정/게임하러가기 버튼 배경색 (bg-[#7c5d43]를 덮어씀) */
+.bg-\[\#7c5d43\] { background-color: #4a7538 !important; }
+
+/* 3. 버튼 호버 색상 */
+.hover\:bg-\[\#7c5d43\]:hover { background-color: #2b5711 !important; }
+
+/* 4. 강조 텍스트 (D-DAY) 색상 (text-[#7c5d43]를 덮어씀) */
+.text-\[\#7c5d43\] { color: #4a7538 !important; }
+
+/* 5. 닉네임 강조색 (text-[#964B00]를 덮어씀) */
+.text-\[\#964B00\] { color: #6aa84f !important; } 
+
+/* 일반 텍스트 및 링크 색상 */
+a { color: #4a7538; }
+a:hover { color: #6aa84f; }
+.text-gray-600 { color: #587b58; }
+.text-gray-500 { color: #88a688; }
+
+.profile-img-container {
+    border: 2px solid #6aa84f;
+    /* ⭐ 이 두 속성이 없으면 이미지가 원본 크기로 커집니다! ⭐ */
+    width: 80px; 
+    height: 80px;
+    overflow: hidden; /* 이미지가 컨테이너를 벗어나는 것을 방지 */
+}
+
+/* 이미지가 컨테이너 크기에 맞춰지도록 추가 */
+.profile-img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}

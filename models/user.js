@@ -62,6 +62,11 @@ class User extends Sequelize.Model {
             type: Sequelize.STRING(255), // D-Day는 날짜만 저장 (DATEONLY로 변경)
             allowNull: true,
         },
+        theme: {
+            type: Sequelize.STRING(100),
+            allowNull: false,
+            defaultValue: "diary",
+        },
         }, {
         sequelize,
         timestamps: false,
@@ -79,6 +84,12 @@ class User extends Sequelize.Model {
           foreignKey: 'UserId', // Log 테이블에 생성될 외래 키 컬럼 이름
           sourceKey: 'id',      // User 테이블의 참조할 컬럼 (User의 id)
           onDelete: 'cascade'   // User 삭제 시 연결된 Log도 함께 삭제
+      });
+      db.User.belongsToMany(db.Item, { 
+          through: 'user_items', // 중간 테이블 이름
+          foreignKey: 'user_id',   // user_items 테이블에서 User를 참조하는 키
+          otherKey: 'item_id',     // user_items 테이블에서 Item을 참조하는 키
+          timestamps: false
       });
   }
 };
