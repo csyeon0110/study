@@ -58,7 +58,7 @@ app.use(session({
     cookie: { 
         httpOnly: true, 
         secure: true, 
-        sameSite: 'lax',
+        sameSite: 'none',
         maxAge: 60 * 1000 * 30 // 30분으로 설정
     },
     name: 'session-cookie',
@@ -161,17 +161,29 @@ app.post('/api/register', upload.single('img_file'), async (req, res) => {
 
 // 2. 로그인 API
 app.post('/api/login', async (req, res) => {
-    console.log("[LOGIN API]");
+    console.log("[LOGIN API] 0. Request received.");
     try {
         const { username, password } = req.body; 
         
+        console.log(`[LOGIN API] 1. Searching user by nickname: ${username}`);
         const user = await User.findOne({ where: { nickname: username } });
-        if (!user) { return res.status(400).json({ message: '사용자를 찾을 수 없습니다.' }); }
-        const isMatch = await bcrypt.compare(password, user.pw);
-        if (!isMatch) { return res.status(400).json({ message: '비밀번호가 일치하지 않습니다.' }); }
+        if (!user) {
+            console.log(`[LOGIN API] 2. User not found for nickname: ${username}`);
+            return res.status(400).json({ message: '사용자를 찾을 수 없습니다.' });
+        }
 
+        console.log(`[LOGIN API] 3. Starting password compare (Hash length: ${user.pw ? user.pw.length : 'NULL'})`);
+        const isMatch = await bcrypt.compare(password, user.pw);
+
+        if (!isMatch) {
+            console.log("[LOGIN API] 4. Password mismatch.");
+            return res.status(400).json({ message: '비밀번호가 일치하지 않습니다.' });
+        }
+
+        console.log("[LOGIN API] 5. Password matched! Starting session creation.");
         req.session.userId = user.id; 
         
+        console.log("[LOGIN API] 6. Login Success and Session assigned.");
         res.status(200).json({ message: '로그인 성공!' });
     } catch (error) {
         console.error("LOGIN API CRITICAL ERROR:", error);
