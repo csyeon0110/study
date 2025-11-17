@@ -54,9 +54,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     secret: process.env.SESSION_SECRET,
+    proxy: true, // 프록시 환경에서 secure 쿠키 사용을 위해 설정
     cookie: { 
         httpOnly: true, 
-        secure: false, 
+        secure: true, 
         sameSite: 'lax',
         maxAge: 60 * 1000 * 30 // 30분으로 설정
     },
@@ -173,6 +174,7 @@ app.post('/api/login', async (req, res) => {
         
         res.status(200).json({ message: '로그인 성공!' });
     } catch (error) {
+        console.error("LOGIN API CRITICAL ERROR:", error);
         res.status(500).json({ message: '서버 에러가 발생했습니다.' });
     }
 });
