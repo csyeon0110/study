@@ -536,16 +536,30 @@ app.use((err, req, res, next) => {
   });*/
 // app.js의 맨 끝 (기존 sync 블록을 대체)
 
-// ***** 1. 서버를 먼저 실행하여 포트 타임아웃을 방지 *****
+// 1. 서버를 먼저 실행하여 포트 타임아웃을 방지
 app.listen(app.get('port'), () => {
     console.log(`Example app listening at http://localhost:${app.get('port')}`);
 });
 
-// 2. 서버 실행 후 DB 동기화를 시도 (서버 시작을 막지 않음)
-sequelize.sync({ force: false }) 
-  .then(() => {
-    console.log('데이터베이스 연결 성공 및 동기화 완료'); 
-  })
+// 2. 서버 실행 후 DB 동기화를 시도 (테이블 생성 및 데이터 삽입)
+sequelize.sync({ force: false }) // 🚨 [force: false로 복구!]
+  .then(async () => { // async를 추가하여 await 사용 가능
+    console.log('데이터베이스 연결 성공 및 동기화 완료'); 
+
+    const { Item } = require('./models'); // Item 모델을 불러옵니다.
+    const env = process.env.NODE_ENV || 'development';
+    
+    // ⭐️ 상점 데이터 삽입 로직 (force: true 때 이미 실행되었으므로, 이제는 실행되지 않음) ⭐️
+    if (env === 'production') {
+        const count = await Item.count();
+        if (count === 0) {
+            console.log('--- DEBUG: Initial shop theme data insertion started ---');
+            const THEMES = [ /* ... 테마 배열 ... */ ]; 
+            await Item.bulkCreate(THEMES);
+            console.log('--- DEBUG: 6 theme items successfully inserted ---');
+        }
+    }
+  })
   .catch((err) => {
     console.error('데이터베이스 연결 실패 (동기화 실패):', err); 
   });

@@ -44,6 +44,7 @@ db.User = User;
 db.Log = Log; 
 db.Item = Item; // ⭐ Item 모델 DB 객체에 추가
 
+/* sequelize.sync() index.js에서 처리하지 않도록 -> app.js로 이동**** ⭐
 if (env === 'production') { // theme 아이템 초기 데이터 삽입 (프로덕션 환경에서만 최초 배포시 실행)
     sequelize.sync({ force: true }).then(async () => {
         // 이미 데이터가 있는지 확인합니다.
@@ -65,7 +66,7 @@ if (env === 'production') { // theme 아이템 초기 데이터 삽입 (프로�
     }).catch(err => {
         console.error('Initial data sync error:', err);
     });
-}
+}*/
 
 // 1. 모든 모델 초기화 (init): 관계 설정 전에 속성들을 Sequelize에 등록합니다.
 User.init(sequelize);
