@@ -45,7 +45,7 @@ db.Log = Log;
 db.Item = Item; // ⭐ Item 모델 DB 객체에 추가
 
 if (env === 'production') { // theme 아이템 초기 데이터 삽입 (프로덕션 환경에서만 최초 배포시 실행)
-    sequelize.sync({ force: false }).then(async () => {
+    sequelize.sync({ force: true }).then(async () => {
         // 이미 데이터가 있는지 확인합니다.
         const count = await Item.count();
 
