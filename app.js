@@ -2,6 +2,10 @@ const express = require('express');
 const morgan = require('morgan'); // HTTP 요청 로깅 미들웨어
 const cookieParser = require('cookie-parser'); // 쿠키 파싱 미들웨어
 const session = require('express-session'); // 세션 미들웨어 
+// ⭐ connect-pg-simple 및 pg 모듈 로드
+const { Pool } = require('pg'); // PostgreSQL 연결 풀을 위한 모듈
+const pgSession = require('connect-pg-simple')(session); // connect-pg-simple 로드
+
 const dotenv = require('dotenv'); // .env 파일의 환경변수 로드
 const path = require('path'); // 경로 조작 유틸리티
 const nunjucks = require('nunjucks'); // 템플릿 엔진
@@ -22,6 +26,16 @@ const userRouter = require('./routes/user');
 const app = express(); 
 app.set('port', process.env.PORT || 3000); 
 app.set('view engine', 'html'); 
+
+// ⭐ PostgreSQL 연결 Pool 설정 (Render DB URL 사용)
+// Production 환경의 세션 저장을 위해 DB 연결 Pool을 정의합니다.
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    require: true, // SSL 필수
+    rejectUnauthorized: false // Render 환경을 위한 설정
+  }
+});
 
 // Nunjucks 환경 인스턴스를 env 변수에 저장
 const env = nunjucks.configure('views', { 
@@ -51,6 +65,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false })); 
 app.use(cookieParser(process.env.COOKIE_SECRET)); 
 app.use(session({ 
+    // ⭐ 메모리 대신 PostgreSQL에 세션 정보를 저장하도록 설정
+    store: new pgSession({
+        pool: pgPool, // 위에서 정의한 DB 연결 풀 사용
+        tableName: 'session', // 세션 데이터를 저장할 DB 테이블 이름
+        createTableIfMissing: true // 테이블이 없으면 자동 생성 (최초 실행 시)
+    }),
+    
     resave: false,
     saveUninitialized: false,
     secret: process.env.SESSION_SECRET,
