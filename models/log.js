@@ -17,6 +17,11 @@ class Log extends Sequelize.Model { // 클래스 이름 'Logs'를 'Log'로 변�
             type: Sequelize.TEXT('medium'),
             allowNull: true,
         },
+        is_public: {
+            type: Sequelize.BOOLEAN, // 공개 여부는 BOOLEAN 타입이 적절합니다.
+            allowNull: false,
+            defaultValue: false, // 기본값은 비공개(false)로 설정
+        },
         // created_at 필드는 Sequelize의 timestamps: true를 사용하거나 
         // 직접 정의할 수 있지만, 여기서는 기존 필드명을 유지합니다.
         created_at: { 
