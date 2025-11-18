@@ -71,7 +71,7 @@ app.use(session({
         tableName: 'session', // 세션 데이터를 저장할 DB 테이블 이름
         createTableIfMissing: true // 테이블이 없으면 자동 생성 (최초 실행 시)
     }),
-    
+
     resave: false,
     saveUninitialized: false,
     secret: process.env.SESSION_SECRET,
@@ -522,7 +522,7 @@ app.use((err, req, res, next) => {
 
 
 // sequelize.sync()를 호출하여 데이터베이스와 동기화
-sequelize.sync({ force: false }) 
+/*sequelize.sync({ force: false }) 
   .then(() => {
     console.log('데이터베이스 연결 성공'); 
     // 데이터베이스 연결 성공 시 서버 실행
@@ -533,6 +533,21 @@ sequelize.sync({ force: false })
   .catch((err) => {
     console.error('데이터베이스 연결 실패'); 
     console.error(err); 
+  });*/
+// app.js의 맨 끝 (기존 sync 블록을 대체)
+
+// ***** 1. 서버를 먼저 실행하여 포트 타임아웃을 방지 *****
+app.listen(app.get('port'), () => {
+    console.log(`Example app listening at http://localhost:${app.get('port')}`);
+});
+
+// 2. 서버 실행 후 DB 동기화를 시도 (서버 시작을 막지 않음)
+sequelize.sync({ force: false }) 
+  .then(() => {
+    console.log('데이터베이스 연결 성공 및 동기화 완료'); 
+  })
+  .catch((err) => {
+    console.error('데이터베이스 연결 실패 (동기화 실패):', err); 
   });
 
 /*const express = require('express');
