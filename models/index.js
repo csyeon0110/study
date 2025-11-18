@@ -44,6 +44,29 @@ db.User = User;
 db.Log = Log; 
 db.Item = Item; // ⭐ Item 모델 DB 객체에 추가
 
+if (env === 'production') { // theme 아이템 초기 데이터 삽입 (프로덕션 환경에서만 최초 배포시 실행)
+    sequelize.sync({ force: false }).then(async () => {
+        // 이미 데이터가 있는지 확인합니다.
+        const count = await Item.count();
+
+        if (count === 0) {
+            console.log('--- DEBUG: Initial shop theme data insertion started ---');
+            const THEMES = [
+                { name: 'diary', type: 'theme', price: 0, description: '종이 질감 : 기본 테마' },
+                { name: 'dev', type: 'theme', price: 100, description: '어두운 배경 & 청록색 네온 : 코딩 컨셉 테마' },
+                { name: 'pastel', type: 'theme', price: 150, description: '부드러운 파스텔 톤 : 귀여운 테마' },
+                { name: 'autumn', type: 'theme', price: 150, description: '차분한 황토색 & 짙은 갈색 : 가을 감성 테마' },
+                { name: 'forest', type: 'theme', price: 200, description: '민트 & 나무색 : 상쾌한 숲 테마' },
+                { name: 'game', type: 'theme', price: 200, description: '네온 핑크 & 형광 녹색 : 레트로 아케이드 테마' },
+            ];
+            await Item.bulkCreate(THEMES); // 데이터 일괄 삽입
+            console.log('--- DEBUG: 6 theme items successfully inserted ---');
+        }
+    }).catch(err => {
+        console.error('Initial data sync error:', err);
+    });
+}
+
 // 1. 모든 모델 초기화 (init): 관계 설정 전에 속성들을 Sequelize에 등록합니다.
 User.init(sequelize);
 Log.init(sequelize); 
