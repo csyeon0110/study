@@ -216,7 +216,7 @@ app.post('/api/login', async (req, res) => {
 // 3. 로그 저장 및 포인트 지급 API
 app.post('/api/log', checkAuthApi, async (req, res) => {
     console.log("[POST /api/log]");
-    const { title, content, is_public, tag } = req.body; 
+    const { title, content, is_public } = req.body; 
     const user = req.user; 
 
     if (!title || !content) {
@@ -244,7 +244,7 @@ app.post('/api/log', checkAuthApi, async (req, res) => {
             title: title,
             content: content,
             is_public: is_public === 'true', // 문자열 'true'를 boolean으로 변환
-            tag: tag || null,
+            //tag: tag || null,
             UserId: user.id,
         });
 
@@ -542,7 +542,7 @@ app.listen(app.get('port'), () => {
 });
 
 // 2. 서버 실행 후 DB 동기화를 시도 (테이블 생성 및 데이터 삽입)
-sequelize.sync({ force: false }) // 🚨 [force: false로 복구!]
+sequelize.sync({ force: true }) // 🚨 [force: false로 복구!]
   .then(async () => { // async를 추가하여 await 사용 가능
     console.log('데이터베이스 연결 성공 및 동기화 완료'); 
 
@@ -554,7 +554,14 @@ sequelize.sync({ force: false }) // 🚨 [force: false로 복구!]
         const count = await Item.count();
         if (count === 0) {
             console.log('--- DEBUG: Initial shop theme data insertion started ---');
-            const THEMES = [ /* ... 테마 배열 ... */ ]; 
+            const THEMES = [
+                { name: 'diary', type: 'theme', price: 0, description: '종이 질감 : 기본 테마' },
+                { name: 'dev', type: 'theme', price: 100, description: '어두운 배경 & 청록색 네온 : 코딩 컨셉 테마' },
+                { name: 'pastel', type: 'theme', price: 150, description: '부드러운 파스텔 톤 : 귀여운 테마' },
+                { name: 'autumn', type: 'theme', price: 150, description: '차분한 황토색 & 짙은 갈색 : 가을 감성 테마' },
+                { name: 'forest', type: 'theme', price: 200, description: '민트 & 나무색 : 상쾌한 숲 테마' },
+                { name: 'game', type: 'theme', price: 200, description: '네온 핑크 & 형광 녹색 : 레트로 아케이드 테마' },
+            ]; 
             await Item.bulkCreate(THEMES);
             console.log('--- DEBUG: 6 theme items successfully inserted ---');
         }

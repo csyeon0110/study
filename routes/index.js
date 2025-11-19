@@ -125,9 +125,9 @@ router.get('/feed', checkAuth, (req, res) => {
 // [C] GET /api/feed: 공개 피드 API (데이터 조회) (생략)
 router.get('/api/feed', checkAuth, async (req, res, next) => {
     try {
-        const { tag, nickname } = req.query; 
+        const { nickname } = req.query; 
         const whereClause = { is_public: true }; 
-        if (tag) { whereClause.tag = tag; }
+        //if (tag) { whereClause.tag = tag; }
 
         let userWhereClause = {};
         if (nickname) {
@@ -149,7 +149,7 @@ router.get('/api/feed', checkAuth, async (req, res, next) => {
             id: log.id,
             title: log.title,
             content: log.content,
-            tag: log.tag,
+            //tag: log.tag,
             created_at: moment(log.created_at).format('YYYY.MM.DD HH:mm'), 
             authorNickname: log.User.nickname, 
         }));
