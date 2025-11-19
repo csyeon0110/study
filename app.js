@@ -542,7 +542,7 @@ app.listen(app.get('port'), () => {
 });
 
 // 2. 서버 실행 후 DB 동기화를 시도 (테이블 생성 및 데이터 삽입)
-sequelize.sync({ force: true }) // 🚨 [force: false로 복구!]
+sequelize.sync({ force: false }) // 🚨 [force: false로 복구!]
   .then(async () => { // async를 추가하여 await 사용 가능
     console.log('데이터베이스 연결 성공 및 동기화 완료'); 
 
