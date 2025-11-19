@@ -243,7 +243,8 @@ app.post('/api/log', checkAuthApi, async (req, res) => {
         await Log.create({
             title: title,
             content: content,
-            is_public: is_public === 'true', // 문자열 'true'를 boolean으로 변환
+            is_public: true,
+            //is_public: is_public === 'true', // 문자열 'true'를 boolean으로 변환
             //tag: tag || null,
             UserId: user.id,
         });
