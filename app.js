@@ -17,6 +17,7 @@ const jwt = require('jsonwebtoken'); // JWT 토큰 라이브러리
 const cors = require('cors'); // CORS 미들웨어
 const multer = require('multer'); // 파일 업로드 미들웨어
 const fs = require('fs'); // 파일 시스템 모듈
+const rateLimit = require('express-rate-limit'); // 요청 속도 제한 미들웨어
 
 // 환경변수 설정
 dotenv.config(); 
@@ -79,11 +80,18 @@ app.use(session({
     cookie: { 
         httpOnly: true, 
         secure: true, 
-        sameSite: 'none',
+        sameSite: 'lax',
         maxAge: 60 * 1000 * 30 // 30분으로 설정
     },
     name: 'session-cookie',
 }));
+
+const loginLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000, // 요청을 제한할 시간 범위
+    max: 5, // 요청 최대 허용 횟수
+    message: { message: '5분 후에 다시 시도해주세요.' },
+    standardHeaders: true, // 응답 헤더에 남은 횟수, 시간 정보 포함됨
+});
 
 
 // uploads 폴더 없으면 생성
@@ -181,31 +189,40 @@ app.post('/api/register', upload.single('img_file'), async (req, res) => {
 
 
 // 2. 로그인 API
-app.post('/api/login', async (req, res) => {
-    console.log("[LOGIN API] 0. Request received.");
+// 2. 로그인 API
+// ⭐⭐ loginLimiter 미들웨어를 적용합니다. ⭐⭐
+app.post('/api/login', loginLimiter, async (req, res) => {
+    console.log("[LOGIN API]");
     try {
         const { username, password } = req.body; 
         
-        console.log(`[LOGIN API] 1. Searching user by nickname: ${username}`);
+        // 1. 사용자 조회
         const user = await User.findOne({ where: { nickname: username } });
-        if (!user) {
-            console.log(`[LOGIN API] 2. User not found for nickname: ${username}`);
-            return res.status(400).json({ message: '사용자를 찾을 수 없습니다.' });
+        if (!user) { 
+            // 사용자가 없어도 응답 시간 지연 및 카운트 증가를 위해 여기서 에러 처리
+            return res.status(400).json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' }); 
         }
-
-        console.log(`[LOGIN API] 3. Starting password compare (Hash length: ${user.pw ? user.pw.length : 'NULL'})`);
+        
+        // 2. 비밀번호 비교
         const isMatch = await bcrypt.compare(password, user.pw);
 
-        if (!isMatch) {
-            console.log("[LOGIN API] 4. Password mismatch.");
-            return res.status(400).json({ message: '비밀번호가 일치하지 않습니다.' });
+        if (isMatch) { 
+            // 3. 로그인 성공 처리
+            req.session.userId = user.id; 
+            
+            // ⭐⭐ 핵심 수정: Rate Limit 카운터 초기화 ⭐⭐
+            // 로그인 성공은 정상적인 사용이므로, 제한 카운터를 0으로 리셋합니다.
+            if (req.rateLimit && req.rateLimit.reset) {
+                req.rateLimit.reset(); 
+            }
+            
+            console.log("[LOGIN API] Login Success and Session assigned.");
+            res.status(200).json({ message: '로그인 성공!' });
+        } else {
+            // 4. 비밀번호 불일치 (실패 로직)
+            // 카운터는 그대로 유지되며 5회 실패 시 429 에러가 발생합니다.
+            res.status(400).json({ message: '아이디 또는 비밀번호가 일치하지 않습니다.' });
         }
-
-        console.log("[LOGIN API] 5. Password matched! Starting session creation.");
-        req.session.userId = user.id; 
-        
-        console.log("[LOGIN API] 6. Login Success and Session assigned.");
-        res.status(200).json({ message: '로그인 성공!' });
     } catch (error) {
         console.error("LOGIN API CRITICAL ERROR:", error);
         res.status(500).json({ message: '서버 에러가 발생했습니다.' });
@@ -518,7 +535,7 @@ app.use((req, res, next) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).send(err.message);
+  res.status(500).send('Server Error');
 });
 
 
@@ -543,7 +560,7 @@ app.listen(app.get('port'), () => {
 });
 
 // 2. 서버 실행 후 DB 동기화를 시도 (테이블 생성 및 데이터 삽입)
-sequelize.sync({ force: false }) // 🚨 [force: false로 복구!]
+sequelize.sync({ force: false })
   .then(async () => { // async를 추가하여 await 사용 가능
     console.log('데이터베이스 연결 성공 및 동기화 완료'); 
 
